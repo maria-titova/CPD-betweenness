@@ -23,3 +23,4 @@ import CPDLinear.BetweennessCore
 import CPDLinear.BetweennessRank
 import CPDLinear.BetweennessOrder
 import CPDLinear.Theorem2
+import CPDLinear.ThinB
