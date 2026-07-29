@@ -54,7 +54,36 @@ def HasCommonValueIntersections (G : DisclosureGame T Msg) : Prop :=
 /-- Thin-B implies the common-value intersection law. -/
 theorem IsThinB.hasCommonValueIntersections (hthin : G.IsThinB) :
     G.HasCommonValueIntersections := by
-  sorry
+  obtain ⟨v, hB, hV⟩ := hthin
+  intro n a μs w hpos hsum hμ hw
+  have hmix : (fun θ => ∑ i, a i * μs i θ) ∈ simplexOn G.Θ := by
+    refine ⟨fun θ => Finset.sum_nonneg fun i _ =>
+      mul_nonneg (le_of_lt (hpos i)) ((hμ i).1 θ), ?_, ?_⟩
+    · calc
+        ∑ θ, ∑ i, a i * μs i θ = ∑ i, ∑ θ, a i * μs i θ :=
+          Finset.sum_comm
+        _ = ∑ i, a i := by
+          apply Finset.sum_congr rfl
+          intro i _
+          rw [← Finset.mul_sum, (hμ i).2.1, mul_one]
+        _ = 1 := hsum
+    · intro θ hθ
+      apply Finset.sum_eq_zero
+      intro i _
+      rw [(hμ i).2.2 θ hθ, mul_zero]
+  rw [hV _ hmix]
+  have hw' : ∀ i, w ∈ thinB G.Θ v (μs i) := by
+    intro i
+    rw [← hV _ (hμ i)]
+    exact hw i
+  convert thinB_common_value G.Θ G.Θ_nonempty v hB n a μs w hpos hsum hμ hw' using 1
+  ext x
+  simp only [Set.mem_setOf_eq]
+  constructor <;> intro hx i
+  · rw [← hV _ (hμ i)]
+    exact hx i
+  · rw [hV _ (hμ i)]
+    exact hx i
 
 /-- The common-value intersection law passes to any face/message subgame that
 keeps the ambient payoff correspondence on the smaller simplex.  This is the
@@ -65,11 +94,63 @@ theorem HasCommonValueIntersections.of_subgame
     (hΘ : H.Θ ⊆ G.Θ)
     (hV : ∀ μ ∈ simplexOn H.Θ, H.V μ = G.V μ) :
     H.HasCommonValueIntersections := by
-  sorry
+  intro n a μs w hpos hsum hμ hw
+  have hmix : (fun θ => ∑ i, a i * μs i θ) ∈ simplexOn H.Θ := by
+    refine ⟨fun θ => Finset.sum_nonneg fun i _ =>
+      mul_nonneg (le_of_lt (hpos i)) ((hμ i).1 θ), ?_, ?_⟩
+    · calc
+        ∑ θ, ∑ i, a i * μs i θ = ∑ i, ∑ θ, a i * μs i θ :=
+          Finset.sum_comm
+        _ = ∑ i, a i := by
+          apply Finset.sum_congr rfl
+          intro i _
+          rw [← Finset.mul_sum, (hμ i).2.1, mul_one]
+        _ = 1 := hsum
+    · intro θ hθ
+      apply Finset.sum_eq_zero
+      intro i _
+      rw [(hμ i).2.2 θ hθ, mul_zero]
+  have hμG : ∀ i, μs i ∈ simplexOn G.Θ := fun i => simplexOn_mono hΘ (hμ i)
+  have hwG : ∀ i, w ∈ G.V (μs i) := by
+    intro i
+    rw [← hV _ (hμ i)]
+    exact hw i
+  rw [hV _ hmix]
+  convert hcommon n a μs w hpos hsum hμG hwG using 1
+  ext x
+  simp only [Set.mem_setOf_eq]
+  constructor <;> intro hx i
+  · rw [← hV _ (hμ i)]
+    exact hx i
+  · rw [hV _ (hμ i)]
+    exact hx i
 
 /-- The upper envelope of a thin-B game satisfies betweenness. -/
 theorem IsThinB.betweenness (hthin : G.IsThinB) : G.Betweenness := by
-  sorry
+  obtain ⟨v, hB, hV⟩ := hthin
+  have hvbar {μ : T → ℝ} (hμ : μ ∈ simplexOn G.Θ) :
+      G.vbar μ = thinBUpper G.Θ v μ := by
+    rw [DisclosureGame.vbar, hV μ hμ,
+      thinB_eq_Icc G.Θ G.Θ_nonempty v hB μ hμ]
+    apply csSup_Icc
+    obtain ⟨x, hx⟩ := G.V_nonempty μ hμ
+    rw [hV μ hμ, thinB_eq_Icc G.Θ G.Θ_nonempty v hB μ hμ] at hx
+    exact hx.1.trans hx.2
+  intro μ hμ μ' hμ' l hl
+  have hmix : (fun θ => l * μ θ + (1 - l) * μ' θ) ∈ simplexOn G.Θ := by
+    refine ⟨?_, ?_, ?_⟩
+    · intro θ
+      exact add_nonneg (mul_nonneg (le_of_lt hl.1) (hμ.1 θ))
+        (mul_nonneg (sub_nonneg.mpr (le_of_lt hl.2)) (hμ'.1 θ))
+    · rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum,
+        hμ.2.1, hμ'.2.1]
+      ring
+    · intro θ hθ
+      simp only
+      rw [hμ.2.2 θ hθ, hμ'.2.2 θ hθ]
+      norm_num
+  rw [hvbar hμ, hvbar hμ', hvbar hmix]
+  exact thinBUpper_isBetweenness G.Θ G.Θ_nonempty v hB μ hμ μ' hμ' l hl
 
 namespace Coalition
 
