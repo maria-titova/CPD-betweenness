@@ -58,6 +58,14 @@
 % names: free disposal, revelation aversion, decomposability. Rename here only.
 \newcommand{\DEG}{\textup{PD}}
 
+%% Lean-status badges (Aristotle formalization workflow).  A statement carries one
+%% badge; the cron poller flips it when Aristotle returns and the proof is checked
+%% locally against our mathlib pin.  \arileanpending = submitted, Ari in progress.
+\newcommand{\leanproved}{{\footnotesize\textsf{\textcolor{green!55!black}{[Lean\,\checkmark\ proved]}}}}
+\newcommand{\leanaxiom}{{\footnotesize\textsf{\textcolor{blue!65!black}{[Lean\,\checkmark\ proved, mod.\ Kakutani]}}}}
+\newcommand{\arileanpending}{{\footnotesize\textsf{\textcolor{orange!80!black}{[Lean: Ari pending]}}}}
+\newcommand{\leanfailed}{{\footnotesize\textsf{\textcolor{red!70!black}{[Lean: failed]}}}}
+
 %% bibliography using biber / biblatex
 \usepackage[
             backend = biber,
@@ -141,7 +149,7 @@ approaching $\mu$. The constant sequence $\mu_n\equiv\mu$ shows $v(\mu)\in L_v(\
     $v$ satisfying B.
 \end{definition}
 
-\begin{lemma}\label{lem:thinB-A4}
+\begin{lemma}\label{lem:thinB-A4}\ \arileanpending
     Every thin-B correspondence $V$ satisfies \cref{A4:V-uhc}: it is upper
     hemicontinuous with non-empty compact interval values.
 \end{lemma}
