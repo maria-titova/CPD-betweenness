@@ -551,7 +551,7 @@ be the set of subsequential limit values of $v$ at $\mu$. The constant sequence 
     where $\operatorname{Conv}$ denotes the convex hull in $\mathbb{R}$. A correspondence is \emph{thin-B} if it is generated in this way by some $v$ satisfying B.
 \end{definition}
 
-The adjective ``thin'' refers to the primitive graph before convexification: away from discontinuities the correspondence is the singleton $\{v(\mu)\}$, while at a discontinuity it contains precisely the interval spanned by limit values. The following result verifies that this construction is compatible with the standing model.
+At every continuity point of $v$, the correspondence is the singleton $\{v(\mu)\}$; at a discontinuity, it is exactly the interval spanned by the cluster values. The following result verifies that the construction satisfies the standing payoff assumptions.
 
 \begin{lemma}\label{lem:thinB-A4}\ \leanpending{ThinB.lean::thinB\_A4}
     Every thin-B correspondence satisfies \cref{A4:V-uhc}: it is upper hemicontinuous with non-empty compact interval values.
@@ -569,7 +569,7 @@ Equivalently, $\overline v(\mu)=\max L_v(\mu)$ and $\underline v(\mu)=\min L_v(\
     If $v$ satisfies B, then both $\overline v$ and $\underline v$ satisfy B.
 \end{lemma}
 
-The next proposition is the key property that distinguishes thin-B from an arbitrary interval-valued correspondence. If several beliefs share a feasible payoff, the value at every strict mixture of those beliefs is exactly the intersection of their values.
+The property of thin-B used below is that beliefs with a common feasible payoff have exactly the intersection of their values at every strict mixture.
 
 \begin{proposition}\label{prop:thinB-common-value}\ \leanpending{ThinB.lean::thinB\_common\_value}
     Let $I$ be a finite non-empty set, let $\mu_i\in\Delta\Theta$ and $\lambda_i>0$ for every $i\in I$, and suppose $\sum_{i\in I}\lambda_i=1$. Define
@@ -595,10 +595,10 @@ The next proposition is the key property that distinguishes thin-B from an arbit
     In particular, $w\in V(\mu^0_C)$ and $w\leq\overline v(\mu^0_C)$.
 \end{lemma}
 
-The equality in \cref{lem:thinB-value-set} is stronger than the corresponding single-valued identity \cref{lem:value-id}. It permits any coalition strategy to be repaid at every point of the interval $V(\mu^0_C)$. This flexibility lets us normalize genuine PBE partitions without replacing the correspondence $V$ by the generally invalid single-valued selection $\{\overline v\}$.
+Thus a fixed coalition strategy can be repaid at every point of $V(\mu^0_C)$. This permits the normalization of genuine PBE partitions without replacing $V$ by the generally invalid singleton correspondence $\{\overline v\}$.
 
-\begin{proposition}\label{prop:thinB-upper-pbe}\ \leanpending{ThinBExistence.lean::IsThinB.hasCommonValueIntersections,\ exists\_upperNormalizedPBE}
-    Every disclosure game obtained by restricting a thin-B correspondence to a non-empty face of $\Delta\Theta$, and possibly deleting messages while leaving every type with a non-empty message set, admits a PBE partition
+\begin{proposition}\label{prop:thinB-upper-pbe}\ \leanpending{ThinBExistence.lean::thinB\_upperNormalizedPBE\_subgame}
+    Every disclosure game obtained by restricting the ambient thin-B correspondence $V$ to a non-empty face of $\Delta\Theta$, and possibly deleting messages while leaving every type with a non-empty message set, admits a PBE partition
     \[
         \{(C_t,\sigma_t,w_t)\}_{t=1}^T
     \]
@@ -642,7 +642,7 @@ The maximum exists because $\Msg_R$ is finite, and every relative preimage in th
     If $V$ is thin-B, then $G$ admits a coalition-proof PBE.
 \end{theorem}
 
-\Cref{thm:two-B,thm:thinB-cppbe} give the single-valued and thin-B versions of the result. Under single-valued B, $V=\{v\}$ and continuity follows from \cref{A4:V-uhc}; under thin-B, the generator may be discontinuous and $V$ records its limiting values. The thin-B proof does not replace $V$ by the generally invalid singleton correspondence $\{\overline v\}$. Instead, \cref{prop:thinB-upper-pbe} normalizes genuine PBE partitions of the correspondence-valued game, while the upper-semicontinuous version of the level-set order in \cref{lem:btw-order} ranks the resulting upper-envelope values.
+\Cref{thm:two-B,thm:thinB-cppbe} give the single-valued and thin-B versions of the result. The latter uses \cref{prop:thinB-upper-pbe} for the correspondence-valued game and the upper-semicontinuous version of \cref{lem:btw-order} for its upper envelope.
 
 \clearpage
 \printbibliography
@@ -1213,7 +1213,7 @@ For the lower envelope, let $u:=-v$. Then $u$ satisfies B and
 The upper envelope of $u$ is therefore $-\underline v$. Applying the result just proved and negating the inequalities shows that $\underline v$ satisfies B. \qed
 
 \subsection*{Proof of \cref{prop:thinB-common-value}}
-We use the following elementary convex-set fact. If $K\subseteq\Delta\Theta$ is convex, every $\mu_i$ belongs to $\operatorname{cl}_{\Delta\Theta}K$, at least one $\mu_i$ belongs to $\operatorname{int}_{\Delta\Theta}K$, and all weights in a convex combination of the $\mu_i$ are positive, then that convex combination belongs to $\operatorname{int}_{\Delta\Theta}K$.
+We use the following elementary convex-set fact. If $K\subseteq\Delta\Theta$ is convex, every $\mu_i$ belongs to $\operatorname{cl}_{\Delta\Theta}K$, at least one $\mu_i$ belongs to $\operatorname{int}_{\Delta\Theta}K$, and all weights in a convex combination of the $\mu_i$ are positive, then that convex combination belongs to $\operatorname{int}_{\Delta\Theta}K$. The one-component case is immediate. Otherwise, isolate an interior component; the normalized mixture of the remaining components lies in the convex set $\operatorname{cl}_{\Delta\Theta}K$, and every non-trivial point of the segment from an interior point of a convex set to a point of its closure is interior.
 
 Set
 \[
@@ -1268,7 +1268,7 @@ By \cref{prop:thinB-common-value},
 Conditions \cref{C1}--\cref{C3} do not depend on the coalition payoff, while \cref{C4} holds for $\widetilde w$ exactly when $\widetilde w$ belongs to the intersection on the right. This proves the equality. \qed
 
 \subsection*{Proof of \cref{prop:thinB-upper-pbe}}
-Fix such a game. By \cref{lem:pbe-existence,prop:pbe-characterization}, it has an individually rational PBE partition with strictly decreasing payoffs. The proof of \cref{lem:thinB-value-set} depends only on Bayes plausibility and \cref{prop:thinB-common-value}, so it applies unchanged to this game and its residual games.
+Fix such a game. The correspondence on every face and message-deleted subgame is the restriction of the original $V$, not a thin hull recomputed on the smaller simplex. Nevertheless, \cref{prop:thinB-common-value} continues to apply to all of its beliefs, so \cref{lem:thinB-value-set} applies to the subgame and its residual games. By \cref{lem:pbe-existence,prop:pbe-characterization}, the subgame has an individually rational PBE partition with strictly decreasing payoffs.
 
 Normalize the cells from first to last. Raise the first-cell payoff to $\overline v(\mu^0_{C_1})$. This is feasible for the same coalition strategy by \cref{lem:thinB-value-set}, preserves individual rationality, and preserves the payoff order.
 
@@ -1389,13 +1389,13 @@ The first part shows that $C\cup C'$ is a relative preimage in $G\vert_R$, so \c
 Hence equality holds. \qed
 
 \subsection*{Proof of \cref{thm:thinB-cppbe}}
-By \cref{lem:thinB-A4}, $G$ satisfies the standing regularity assumption and its upper envelope $\overline v$ is upper semicontinuous. By \cref{lem:thinB-envelope-B}, $\overline v$ satisfies the betweenness inequalities. Hence \cref{lem:btw-order} applies to every level set of $\overline v$.
+The standing assumption \cref{A4:V-uhc} makes $\overline v$ upper semicontinuous, and \cref{lem:thinB-envelope-B} shows that it satisfies the betweenness inequalities. Hence \cref{lem:btw-order} applies to every level set of $\overline v$.
 
 Construct a partition recursively. Let $R_1:=\Theta$. Given non-empty $R_t$, set
 \[
     w_t:=\max\W_{R_t}.
 \]
-The maximum exists by \cref{lem:coalition-compact}. If $(C,\sigma,w_t)$ attains it, \cref{lem:thinB-value-set} allows the same strategy to be paid $\overline v(\mu^0_C)$. Maximality and $w_t\leq\overline v(\mu^0_C)$ imply
+The maximum exists by \cref{lem:coalition-compact}. If $(C,\sigma,w_t)$ attains it, \cref{lem:thinB-value-set} allows the same strategy to be paid $\overline v(\mu^0_C)$; maximality therefore gives
 \[
     \overline v(\mu^0_C)=w_t.
 \]
@@ -1446,9 +1446,9 @@ Form the auxiliary game
     V\vert_{\Delta D}
     \Bigr).
 \]
-It is a disclosure game. The relative-preimage identity says that every type in $D$ has an auxiliary message, and every auxiliary message is used by one of the two original coalitions and hence is available to a type in $D$.
+It is a disclosure game: the relative-preimage identity gives every type in $D$ an auxiliary message, and every auxiliary message is available to a type in $D$. Its payoff correspondence is the restriction of the original $V$, so the ambient common-value property permits the application of \cref{prop:thinB-upper-pbe}; it is not necessary, and generally not correct, to recompute a thin hull on $\Delta D$.
 
-By \cref{prop:thinB-upper-pbe}, $G'$ has a PBE partition
+Thus $G'$ has a PBE partition
 \[
     \{(\widetilde C_\tau,\widetilde\sigma_\tau,\widetilde w_\tau)\}_{\tau=1}^k
 \]

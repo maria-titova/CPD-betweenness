@@ -14,6 +14,11 @@ continuous.
 The crown theorem uses `btw_order_usc`.  Its new geometric step is the
 affine-span argument recorded in `BetweennessOrderUSC.lean`; no continuity of
 the upper envelope is assumed.
+
+For face restrictions and message-deleted auxiliary games, keep the ambient
+correspondence and transport `HasCommonValueIntersections`.  Do not assert that
+the restricted correspondence is a thin hull recomputed on the smaller
+simplex: boundary cluster values can disappear under such a recomputation.
 -/
 
 open Set Topology
@@ -49,6 +54,17 @@ def HasCommonValueIntersections (G : DisclosureGame T Msg) : Prop :=
 /-- Thin-B implies the common-value intersection law. -/
 theorem IsThinB.hasCommonValueIntersections (hthin : G.IsThinB) :
     G.HasCommonValueIntersections := by
+  sorry
+
+/-- The common-value intersection law passes to any face/message subgame that
+keeps the ambient payoff correspondence on the smaller simplex.  This is the
+transport lemma needed for every auxiliary game in the thin-B proof. -/
+theorem HasCommonValueIntersections.of_subgame
+    {H : DisclosureGame T Msg}
+    (hcommon : G.HasCommonValueIntersections)
+    (hΘ : H.Θ ⊆ G.Θ)
+    (hV : ∀ μ ∈ simplexOn H.Θ, H.V μ = G.V μ) :
+    H.HasCommonValueIntersections := by
   sorry
 
 /-- The upper envelope of a thin-B game satisfies betweenness. -/
@@ -88,6 +104,16 @@ games once the law has been transported to them. -/
 theorem exists_upperNormalizedPBE
     (hcommon : G.HasCommonValueIntersections) :
     ∃ P : Partition G,
+      P.IsPBEPartition ∧ StrictAnti P.w ∧ P.IsUpperNormalized := by
+  sorry
+
+/-- Exact wrapper for `prop:thinB-upper-pbe`: every face/message subgame that
+keeps the ambient thin-B values admits an upper-normalized PBE partition. -/
+theorem thinB_upperNormalizedPBE_subgame
+    (hthin : G.IsThinB) {H : DisclosureGame T Msg}
+    (hΘ : H.Θ ⊆ G.Θ)
+    (hV : ∀ μ ∈ simplexOn H.Θ, H.V μ = G.V μ) :
+    ∃ P : Partition H,
       P.IsPBEPartition ∧ StrictAnti P.w ∧ P.IsUpperNormalized := by
   sorry
 

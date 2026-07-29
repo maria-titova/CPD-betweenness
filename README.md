@@ -42,12 +42,15 @@ The recommended proof order is:
 1. `IsBetweenness.bddOn_simplex`, compact cluster values, and `thinB_A4`;
 2. `thinB_eq_Icc` and betweenness of the upper and lower envelopes;
 3. `thinB_common_value`;
-4. `thinB_coalition_payoff_set`;
-5. `exists_upperNormalizedPBE`;
-6. `thinB_attained`;
-7. `thinB_merging`;
-8. `btw_order_usc`;
-9. `thinB_existence`.
+4. `IsThinB.hasCommonValueIntersections` and
+   `HasCommonValueIntersections.of_subgame`;
+5. `thinB_coalition_payoff_set`;
+6. `exists_upperNormalizedPBE` and
+   `thinB_upperNormalizedPBE_subgame`;
+7. `thinB_attained`;
+8. `thinB_merging`;
+9. `btw_order_usc`;
+10. `thinB_existence`.
 
 The paper's proof of `btw_order_usc` generalizes the existing continuous
 ranking construction. In its two-sided case, the strict lower set is a
@@ -58,11 +61,12 @@ that strict lower set and therefore on the whole face, contradicting proper
 separation. Thus the recursive tie slices remain lower-dimensional without
 continuity.
 
-An earlier proposed route characterized correspondence level sets by adjoining
-the two separating hyperplanes to the generator's level sets. Its easy
-boundary-to-level inclusion does not prove the reverse inclusions or the
-claimed closure equalities. Those stronger identities are not dependencies of
-the theorem or of the Lean handoff.
+The crucial restriction convention is that auxiliary games keep the ambient
+correspondence restricted to their faces. Do not recompute `thinB` on the
+smaller simplex: doing so can discard cluster values visible only from ambient
+directions. Transport `HasCommonValueIntersections` instead; this is what
+justifies `exists_upperNormalizedPBE` in every auxiliary game used by
+`thinB_attained` and `thinB_existence`.
 
 Do not formalize the game by replacing `V` with the singleton
 `{G.vbar μ}`. That singleton correspondence need not satisfy the standing

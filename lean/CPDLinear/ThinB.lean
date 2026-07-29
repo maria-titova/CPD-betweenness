@@ -1,7 +1,7 @@
 import CPDLinear.Game
 
 /-!
-# Thin-B correspondences  (extension: `tex/extension/thin-B.tex`)
+# Thin-B correspondences (`tex/v5.tex`, Section 5.2)
 
 A single-valued payoff `v : (T → ℝ) → ℝ`, **not assumed continuous**, satisfies
 betweenness (B) on `Δ Θ` if every mixture's value lies between the endpoint
