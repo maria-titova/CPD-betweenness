@@ -1,0 +1,94 @@
+Aristotle poller for the CPD-betweenness thin-B pipeline. Run one tick and exit quietly.
+Do not ask the user anything; this runs unattended.
+
+SETUP
+  source ~/.bashrc
+  cd /projects/lean/CPD-betweenness
+  git pull --rebase
+Read aristotle/pipeline.md for the queue, the prompt contract and the return protocol.
+
+1. POLL. Read every aristotle/call*/status.md. For each with a Project ID and
+   `Merged: no`, run exactly once:
+     aristotle tasks <project-id>
+   NEVER `aristotle show`, NEVER `--wait`, NEVER `aristotle cancel`.
+   QUEUED or IN_PROGRESS -> leave it alone, move on.
+   Terminal (COMPLETE / COMPLETE_WITH_ERRORS / IDLE / OUT_OF_BUDGET) -> step 2.
+   If nothing is terminal, exit quietly without committing anything.
+
+2. FETCH.
+     rm -rf aristotle/call<N>-<slug>/solution*
+     /projects/lean/practice/bin/ari-fetch <project-id> aristotle/call<N>-<slug>/solution
+   The extracted top-level directory name VARIES (submission_aristotle for a first
+   submit, output-final_aristotle after an `ask`). Locate files by search, e.g.
+     find aristotle/call<N>-<slug>/solution -path '*CPDLinear/ThinB.lean'
+   Read aristotle/call<N>-<slug>/status.md for that call's target declarations and the
+   exact set of files it is allowed to have changed. Copy back ONLY those files into
+   lean/CPDLinear/. Never copy a file another call owns:
+     call1 owns ThinB.lean.
+     call8 owns BetweennessOrderUSC.lean, and may also change BetweennessRank.lean and
+       the proof bodies in BetweennessOrder.lean.
+   If the solution changed a file the call does not own, do not copy that file; note it
+   in status.md and report it as a gate failure (step 4).
+
+3. STATEMENT-FIDELITY GATE. `git diff lean/CPDLinear/` must show changes to proof
+   bodies, new auxiliary lemmas, and (call8 only) auxiliary-lemma hypothesis
+   generalization. Any change to a TARGET declaration's signature — name, binders,
+   hypotheses, conclusion — or to a definition (IsBetweenness, clusterValues, thinB,
+   thinBUpper, thinBLower), or to the public statement of
+   DisclosureGame.btw_order, FAILS the gate. On failure go to step 4.
+
+4. VERIFY LOCALLY. Aristotle's server-side check is not a substitute for our mathlib pin.
+     cd lean && lake build          # must exit 0
+   Then check, from the build output:
+     - the call's target declarations no longer appear in `declaration uses 'sorry'`;
+     - the total sorry count dropped by EXACTLY the number of targets in that call and
+       by nothing else (baseline 19 at commit 71fccec: 3 BetweennessPending,
+       1 BetweennessOrderUSC, 6 ThinB, 9 ThinBExistence);
+     - two_B_existence still builds and is still sorry-free.
+   Then axioms — use a scratch file, do not add #print to a tracked file:
+     ThinB.lean targets must show ONLY propext, Classical.choice, Quot.sound
+     (NO CPDLinear.kakutani — ThinB.lean must keep importing only CPDLinear.Game).
+     btw_order_usc may show CPDLinear.kakutani only if it genuinely reaches PBE
+     existence; flag it in status.md either way.
+   ON ANY FAILURE (build error, wrong sorry delta, fidelity gate, axiom leak):
+     git checkout -- lean/CPDLinear/    # revert the merge, keep the repo green
+     bump `Retries` in status.md, set Status: RETRIED, and resume the SAME project:
+       aristotle ask <project-id> "<one-paragraph description of exactly what failed,
+       quoting the Lean error or the offending diff hunk, and what to fix>"
+     Do NOT cancel and resubmit; do NOT bundle other targets into the ask.
+     If Retries >= 3, set Status: STUCK and leave it for the user.
+     Commit the status.md change and push, then exit.
+
+5. BADGE THE WRITEUP. In tex/v5.tex flip that result's badge from \leanpending{...} to
+   \leanproved{...} (or \leanmixed{proved}{pending} if only part of it closed). The badge
+   macros are defined near the top of v5.tex. Keep the declaration names in the badge in
+   sync with what was actually proved. Mapping:
+     call1 -> lem:thinB-A4 (and dfn:thinB once its declarations are all proved)
+     call8 -> lem:btw-order, whose badge is currently
+              \leanmixed{BetweennessOrder.lean::btw_order}{BetweennessOrderUSC.lean::btw_order_usc}
+              and becomes \leanproved{...both...}
+   Only flip a badge whose Lean declarations are ALL proof-complete.
+
+6. RECORD AND PUSH.
+   Update aristotle/call<N>-<slug>/status.md: Status: COMPLETE, Merged: yes, and a
+   one-line Result note naming the proved declarations and the new sorry count.
+     git add lean/CPDLinear tex/v5.tex aristotle
+     git commit -m "call<N>: merge Aristotle proof of <decls>"
+     git push origin main
+   Commit ONLY on a fully passing gate. A failed gate commits the status.md bookkeeping
+   and nothing else.
+
+7. TOP UP THE QUEUE. Concurrency cap is 2 in-flight tasks, and two calls may run at once
+   ONLY if they own disjoint files. After a merge, if fewer than 2 are in flight, submit
+   the next queued call from the pipeline.md table whose dependencies are merged and
+   whose owned files are disjoint from everything in flight:
+     aristotle/bin/make-submission.sh aristotle/call<N>-<slug>
+     aristotle submit "$(cat aristotle/call<N>-<slug>/prompt.md)" \
+       --project-dir aristotle/call<N>-<slug>/submission
+   A call whose prompt.md does not exist yet is NOT ready — leave it and report that the
+   user needs to author it rather than inventing one. Record the new Project ID and Task
+   ID in status.md, commit, push.
+
+8. TERMINATION. When every call in the pipeline.md table has `Merged: yes` or
+   `Status: STUCK`, post a short summary of the final sorry count and axiom status,
+   then delete this cron job.
