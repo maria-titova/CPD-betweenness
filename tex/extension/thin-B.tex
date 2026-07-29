@@ -1,0 +1,110 @@
+\documentclass[11pt]{article}
+\usepackage{amsfonts,amsmath,amsthm,amssymb,mathtools,bbm}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}\pgfplotsset{compat=1.16}
+\usepackage[colorlinks=true,allcolors=black]{hyperref}
+\usepackage[capitalize,nameinlink]{cleveref}
+\usepackage{titletoc}
+\usepackage{comment}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{example}{Example}
+\crefname{assumption}{Assumption}{Assumptions}
+\Crefname{assumption}{Assumption}{Assumptions}
+\crefname{algocf}{Algorithm}{Algorithms}
+\Crefname{algocf}{Algorithm}{Algorithms}
+\crefformat{enumi}{#2#1#3}
+\Crefformat{enumi}{#2#1#3}
+
+%% algorithm stuff
+\usepackage[ruled]{algorithm2e}
+\SetKwIF{If}{ElseIf}{Else}{if}{}{else if}{else}{end if}%
+\SetKwFor{While}{while}{}{end while}%
+\SetKwRepeat{Do}{do}{while}
+\SetKw{KwGoTo}{go to}
+
+\newcommand{\sep}{\,|\,}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\relint}{\operatorname{relint}}
+\newcommand{\aff}{\operatorname{aff}}
+\newcommand{\Msg}{\mathcal{M}}
+\newcommand{\W}{\mathcal{W}}
+\newcommand{\wT}{R}
+\newcommand{\cups}{\cup \ldots \cup}
+\newcommand{\prob}{\operatorname{Pr}}
+\newcommand{\added}[1]{#1}
+\newcommand{\removed}[1]{#1}
+\definecolor{suggestgreen}{RGB}{0,128,33}
+\newcommand{\suggest}[1]{#1}
+\newcommand{\vtent}{v^{\mathrm{tent}}}
+\definecolor{suggestpurple}{RGB}{128,0,160}
+\definecolor{suggestred}{RGB}{180,0,0}
+% Orange marks results not yet formalized in Lean (leanpending); see cpd-v3.tex badges.
+% (Slot previously held the coauthor's parallel betweenness section, staged from v4.tex.)
+\definecolor{suggestorange}{RGB}{204,102,0}
+\newcommand{\reviewnote}[1]{\par\smallskip\noindent\textbf{Review note.} #1\par\smallskip}
+% Final tag for the game-level payoff-degradation condition (Sec. 6.4): PD.
+% Parenthesized only where it is introduced (the definition), bare elsewhere, as
+% with QC/B/M-C. Sufficient conditions (nested subsets) keep distinct full-word
+% names: free disposal, revelation aversion, decomposability. Rename here only.
+\newcommand{\DEG}{\textup{PD}}
+
+%% bibliography using biber / biblatex
+\usepackage[
+            backend = biber,
+            style = philosophy-classic,
+            maxcitenames = 3,
+            scauthorsbib = true,
+            dashed = true,
+            doi = false,
+            isbn = false,
+            url = false,
+            eprint = false,
+            backref = true
+            ]{biblatex}
+\renewbibmacro{in:}{}
+% Citation convention (author-year). Parenthetical cites take a comma before the
+% year, "(Grossman, 1981)"; narrative cites keep the year in parentheses,
+% "Grossman (1981)". The textcite and bibliography contexts have their own
+% nameyeardelim (a space), so only \parencite/\cite pick up the comma below.
+\DeclareDelimFormat[cbx@textcite]{nameyeardelim}{\addspace}
+\DeclareDelimFormat{nameyeardelim}{\addcomma\space}
+% Backreferences: print only the page numbers, "(pp. 1, 3)", dropping the
+% "Cit. on" wording and the trailing period of the philosophy-classic default.
+\renewbibmacro*{pageref}{%
+  \iflistundef{pageref}
+    {}%
+    {\setunit{\addperiod\space}%
+     \printtext[backrefparens]{%
+       \ifnumgreater{\value{pageref}}{1}
+         {pp\adddot\ppspace}%
+         {p\adddot\ppspace}%
+       \printlist[pageref][-\value{listtotal}]{pageref}}\nopunct}}%
+\newcommand\citenop[1]{\citeauthor{#1}, \citeyear{#1}}
+\let\cite\textcite
+\renewcommand*{\bibfont}{\small}
+\addbibresource{../biblio.bib}
+
+\begin{document}
+
+\begin{definition}
+    A correspondence $V$ is \emph{thin-B} if it is the smallest correspondence that contains a single-valued function $v$ satisfying B and
+    \begin{align*}
+        V(\mu) &:= \text{Conv} \left( \{ w \in \mathbb{R}: \exists (\mu_n)_{n \in \mathbb{N}} : \mu_n \rightarrow \mu, v(\mu_n) \rightarrow w \} \right).
+    \end{align*}
+\end{definition}
+
+\begin{lemma}
+    A thin-B correspondence $V$ satisfies A4, that is, it is upper hemicontinuous with non-empty compact interval values.
+\end{lemma}
+
+\end{document}

@@ -10,4 +10,17 @@ tex/*.pdf
 tex/*.ptc
 tex/*.run.xml
 tex/*.toc
+tex/**/*.aux
+tex/**/*.bbl
+tex/**/*.bcf
+tex/**/*.blg
+tex/**/*.fdb_latexmk
+tex/**/*.fls
+tex/**/*.log
+tex/**/*.out
+tex/**/*.pdf
+tex/**/*.ptc
+tex/**/*.run.xml
+tex/**/*.synctex.gz
+tex/**/*.toc
 lean/.lake/
