@@ -1,4 +1,4 @@
-import CPDLinear.BetweennessOrder
+import CPDLinear.BetweennessOrderUSC
 import CPDLinear.ThinB
 
 /-!
@@ -11,11 +11,9 @@ agent.  Do not replace `IsThinB` by the singleton correspondence
 `{G.vbar μ}`: the upper envelope of a thin-B correspondence need not be
 continuous.
 
-The unconditional existence target remains a conjecture.  The proved-on-paper
-target `thinB_existence_of_continuousUpper` adds exactly the continuity needed
-by the existing level-set ranking construction.  A proof of `thinB_existence`
-must first replace that use of continuity or use a different finite selection
-argument.
+The crown theorem uses `btw_order_usc`.  Its new geometric step is the
+affine-span argument recorded in `BetweennessOrderUSC.lean`; no continuity of
+the upper envelope is assumed.
 -/
 
 open Set Topology
@@ -115,17 +113,10 @@ theorem thinB_merging (hthin : G.IsThinB)
       G.vbar (G.condPrior (K.C ∪ K'.C)) = K.w := by
   sorry
 
-/-- The crown theorem with the hypothesis currently required by the verified
-level-set ranking construction. -/
-theorem thinB_existence_of_continuousUpper (hthin : G.IsThinB)
-    (hcont : ContinuousOn G.vbar (simplexOn G.Θ)) :
-    ∃ P : Partition G, P.IsCPPBEPartition := by
-  sorry
-
-/-- **Open crown target.**  This is Conjecture `conj:thinB-cppbe` in
-`tex/v5.tex`.  Upper semicontinuity does not justify the continuity step in
-`btw_order_aux`; proving this declaration requires a new ranking theorem for
-boundary jumps or a different selection argument. -/
+/-- **Thin-B existence.** Every thin-B disclosure game admits a
+coalition-proof PBE.  The upper envelope is upper semicontinuous and satisfies
+betweenness, so `btw_order_usc` supplies the rank used in the greedy
+construction. -/
 theorem thinB_existence (hthin : G.IsThinB) :
     ∃ P : Partition G, P.IsCPPBEPartition := by
   sorry

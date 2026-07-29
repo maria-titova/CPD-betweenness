@@ -14,15 +14,12 @@
 \newtheorem{proposition}{Proposition}
 \newtheorem{lemma}{Lemma}
 \newtheorem{corollary}{Corollary}
-\newtheorem{conjecture}{Conjecture}
 \newtheorem{remark}{Remark}
 \newtheorem{definition}{Definition}
 \newtheorem{assumption}{Assumption}
 \newtheorem{example}{Example}
 \crefname{assumption}{Assumption}{Assumptions}
 \Crefname{assumption}{Assumption}{Assumptions}
-\crefname{conjecture}{Conjecture}{Conjectures}
-\Crefname{conjecture}{Conjecture}{Conjectures}
 \crefname{algocf}{Algorithm}{Algorithms}
 \Crefname{algocf}{Algorithm}{Algorithms}
 \crefformat{enumi}{#2#1#3}
@@ -641,15 +638,11 @@ The maximum exists because $\Msg_R$ is finite, and every relative preimage in th
     \]
 \end{lemma}
 
-\begin{theorem}\label{thm:thinB-cppbe}\ \leanpending{ThinBExistence.lean::thinB\_existence\_of\_continuousUpper}
-    If $V$ is thin-B and its upper envelope $\overline v$ is continuous, then $G$ admits a coalition-proof PBE.
+\begin{theorem}\label{thm:thinB-cppbe}\ \leanpending{ThinBExistence.lean::thinB\_existence}
+    If $V$ is thin-B, then $G$ admits a coalition-proof PBE.
 \end{theorem}
 
-\begin{conjecture}\label{conj:thinB-cppbe}\ \leanpending{ThinBExistence.lean::thinB\_existence}
-    Every game with a thin-B payoff correspondence admits a coalition-proof PBE.
-\end{conjecture}
-
-\Cref{thm:two-B,thm:thinB-cppbe} give, respectively, the single-valued result and the thin-B result under a continuous upper envelope. Under single-valued B, $V=\{v\}$ and continuity follows from \cref{A4:V-uhc}; under thin-B, the generator may be discontinuous and $V$ records its limiting values. The argument does not establish \cref{conj:thinB-cppbe}. In particular, it cannot simply apply the single-valued theorem to $\overline v$: although $\overline v$ satisfies B, it is generally only upper semicontinuous, and the singleton correspondence $\{\overline v\}$ need not satisfy \cref{A4:V-uhc}. More specifically, the proof of the level-set order in \cref{lem:btw-order} uses continuity in its two-sided separation case. Upper semicontinuity is insufficient: on the unit interval, the B function $v(x)=0$ for $x<1$ and $v(1)=1$ is already its own upper-semicontinuous envelope, and level-$0$ points converge to the level-$1$ endpoint. Thus a proof of \cref{conj:thinB-cppbe} requires either a level-set ranking theorem adapted to this boundary-jump geometry or a different selection argument. The normalization result \cref{prop:thinB-upper-pbe} supplies the correspondence-specific part of either route.
+\Cref{thm:two-B,thm:thinB-cppbe} give the single-valued and thin-B versions of the result. Under single-valued B, $V=\{v\}$ and continuity follows from \cref{A4:V-uhc}; under thin-B, the generator may be discontinuous and $V$ records its limiting values. The thin-B proof does not replace $V$ by the generally invalid singleton correspondence $\{\overline v\}$. Instead, \cref{prop:thinB-upper-pbe} normalizes genuine PBE partitions of the correspondence-valued game, while the upper-semicontinuous version of the level-set order in \cref{lem:btw-order} ranks the resulting upper-envelope values.
 
 \clearpage
 \printbibliography
@@ -660,7 +653,6 @@ The maximum exists because $\Msg_R$ is finite, and every relative preimage in th
 \numberwithin{proposition}{section}
 \numberwithin{lemma}{section}
 \numberwithin{corollary}{section}
-\numberwithin{conjecture}{section}
 \numberwithin{definition}{section}
 \numberwithin{remark}{section}
 
@@ -940,10 +932,10 @@ By \cref{lem:value-id},
 so genericity gives $C_t=C'_t$. Hence $R_{t+1}=R'_{t+1}$, and the induction continues. The two partitions have the same length, cells, and payoffs.
 \qed
 
-The proof of \cref{thm:two-B} rests on the following ordering of each level set of $v$.
+The proofs of \cref{thm:two-B,thm:thinB-cppbe} rest on the following ordering lemma. We state it for an upper-semicontinuous real-valued function, rather than only for the continuous payoff in the single-valued model, because this is the generality needed for the upper envelope of a thin-B correspondence.
 
-\begin{lemma}\label{lem:btw-order}\ \leanproved{BetweennessOrder.lean::btw\_order}
-    Assume B and fix $y\in\mathbb{R}$. Write $L:=\{\mu\in\Delta\Theta\sep v(\mu)=y\}$, $L^{++}:=\{v>y\}$, and $L^{--}:=\{v<y\}$. There is a complete and transitive relation $\succeq$ on $L$ such that:
+\begin{lemma}\label{lem:btw-order}\ \leanmixed{BetweennessOrder.lean::btw\_order}{BetweennessOrderUSC.lean::btw\_order\_usc}
+    Let $v:\Delta\Theta\to\mathbb{R}$ be upper semicontinuous and satisfy the betweenness inequalities, and fix $y\in\mathbb{R}$. Write $L:=\{\mu\in\Delta\Theta\sep v(\mu)=y\}$, $L^{++}:=\{v>y\}$, and $L^{--}:=\{v<y\}$. There is a complete and transitive relation $\succeq$ on $L$ such that:
     \begin{enumerate}
         \item[(i)] If $x\in L$, $u\in L^{++}$, $\alpha\in(0,1)$, and $z:=\alpha x+(1-\alpha)u\in L$, then $z\succ x$.
         \item[(ii)] If $\bar\mu\in L$ and $\bar\mu=\sum_\tau\alpha_\tau\mu_\tau$ is a convex combination with positive weights of beliefs $\mu_\tau\in L\cup L^{--}$, then $\mu_\tau\in L$ and $\mu_\tau\succeq\bar\mu$ for some $\tau$.
@@ -1027,7 +1019,7 @@ Thus the sign of $h_\lambda(x)$ is the sign of $\rho(x)-\lambda$, while every de
 \]
 Every point of $S_F$ with rank $\lambda$ lies in $F_\lambda$, with degenerate points placed in $F_1$.
 
-We now check that every relevant slice is lower-dimensional. This is the only place where semicontinuity is used. Because $v$ is upper semicontinuous, $L^{--}$ is relatively open in $\Delta\Theta$; since $B_F$ is non-empty, $\aff(B_F)=\aff(F)$. Fix $\lambda$ with $F_\lambda\cap S_F\neq\varnothing$. If $h_\lambda$ were constant on $F$, then evaluating it at a point of $F_\lambda$ would make the constant zero. For $\lambda\in(0,1)$, the equality $\lambda a+(1-\lambda)b=0$ on $B_F$, together with $a\leq0$ and $b\leq0$ there, would force $a=b=0$ on $B_F$. Since $\aff(B_F)=\aff(F)$, $b$ would vanish on all of $\aff(F)$, contradicting proper separation for $b$. For $\lambda=1$, the same argument uses proper separation for $a$; for $\lambda=0$, it uses proper separation for $b$. Hence $h_\lambda$ is non-constant on $\aff(F)$, and $F_\lambda$ has affine dimension below $d$.
+We now check that every relevant slice is lower-dimensional. This is the only place where upper semicontinuity is used. Because $v$ is upper semicontinuous, $L^{--}$ is relatively open in $\Delta\Theta$. Hence the non-empty set $B_F=L^{--}\cap F$ is relatively open in the convex set $F$, and therefore $\aff(B_F)=\aff(F)$. Fix $\lambda$ with $F_\lambda\cap S_F\neq\varnothing$. If $h_\lambda$ were constant on $F$, then evaluating it at a point of $F_\lambda$ would make the constant zero. For $\lambda\in(0,1)$, the equality $\lambda a+(1-\lambda)b=0$ on $B_F$, together with $a\leq0$ and $b\leq0$ there, would force $a=b=0$ on $B_F$. An affine functional that vanishes on $B_F$ vanishes on $\aff(B_F)=\aff(F)$, so $b$ would be identically zero on $F$, contradicting proper separation for $b$. For $\lambda=1$, the same contradiction follows directly from proper separation for $a$; for $\lambda=0$, it follows from proper separation for $b$. Hence $h_\lambda$ is non-constant on $\aff(F)$, and $F_\lambda$ has affine dimension below $d$.
 
 For (i), put $\lambda:=\rho(x)$. Then $h_\lambda(x)=0$ and
 \[
@@ -1397,7 +1389,7 @@ The first part shows that $C\cup C'$ is a relative preimage in $G\vert_R$, so \c
 Hence equality holds. \qed
 
 \subsection*{Proof of \cref{thm:thinB-cppbe}}
-By \cref{lem:thinB-A4}, $G$ satisfies the standing regularity assumption, and by \cref{lem:thinB-envelope-B} its upper envelope $\overline v$ satisfies B. By the additional hypothesis of the theorem, $\overline v$ is continuous. The geometric construction in the proof of \cref{lem:btw-order} depends only on continuity and B of the function being ranked, so it applies to every level set of $\overline v$.
+By \cref{lem:thinB-A4}, $G$ satisfies the standing regularity assumption and its upper envelope $\overline v$ is upper semicontinuous. By \cref{lem:thinB-envelope-B}, $\overline v$ satisfies the betweenness inequalities. Hence \cref{lem:btw-order} applies to every level set of $\overline v$.
 
 Construct a partition recursively. Let $R_1:=\Theta$. Given non-empty $R_t$, set
 \[

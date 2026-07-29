@@ -22,6 +22,7 @@ import CPDLinear.Betweenness
 import CPDLinear.BetweennessCore
 import CPDLinear.BetweennessRank
 import CPDLinear.BetweennessOrder
+import CPDLinear.BetweennessOrderUSC
 import CPDLinear.Theorem2
 import CPDLinear.ThinB
 import CPDLinear.ThinBExistence

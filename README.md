@@ -10,6 +10,8 @@ This repository isolates the single-valued and thin-B betweenness results from
   proofs needed to formalize them.
 - `lean/CPDLinear/` contains the corresponding Lean declarations and proofs.
   `ThinB.lean` contains the analytic thin-B foundation;
+  `BetweennessOrderUSC.lean` contains the pending upper-semicontinuous
+  level-set ranking theorem;
   `ThinBExistence.lean` contains the game-level thin-B targets; and
   `BetweennessPending.lean` records the remaining genericity branch of the
   stronger single-valued theorem.
@@ -19,8 +21,8 @@ a second thin-B source: edit `tex/v5.tex`.
 
 ## TeX-to-Lean coverage invariant
 
-Every formal assumption, definition, remark, lemma, proposition, theorem, and
-conjecture in `tex/v5.tex` carries a visible badge naming its Lean declaration:
+Every formal assumption, definition, remark, lemma, proposition, and theorem
+in `tex/v5.tex` carries a visible badge naming its Lean declaration:
 
 - **Lean proved**: the declaration contains a proof (possibly using the
   project's separately documented axioms through its imports).
@@ -44,15 +46,23 @@ The recommended proof order is:
 5. `exists_upperNormalizedPBE`;
 6. `thinB_attained`;
 7. `thinB_merging`;
-8. `thinB_existence_of_continuousUpper`.
+8. `btw_order_usc`;
+9. `thinB_existence`.
 
-The fully general declaration `thinB_existence` is intentionally marked as the
-Lean target for Conjecture `conj:thinB-cppbe`, not as an established theorem.
-The existing level-set ranking proof uses continuity at a substantive step;
-upper semicontinuity of the thin-B upper envelope does not justify that step.
-The precise gap and a one-dimensional boundary-jump example are recorded in
-`tex/v5.tex`. Proving the conjecture requires a ranking argument that handles
-those jumps or a different finite selection argument.
+The paper's proof of `btw_order_usc` generalizes the existing continuous
+ranking construction. In its two-sided case, the strict lower set is a
+nonempty relatively open subset of the current convex face and hence has the
+same affine span. If a relevant member of the separator pencil were constant
+on the face, the sign restrictions would force both separators to vanish on
+that strict lower set and therefore on the whole face, contradicting proper
+separation. Thus the recursive tie slices remain lower-dimensional without
+continuity.
+
+An earlier proposed route characterized correspondence level sets by adjoining
+the two separating hyperplanes to the generator's level sets. Its easy
+boundary-to-level inclusion does not prove the reverse inclusions or the
+claimed closure equalities. Those stronger identities are not dependencies of
+the theorem or of the Lean handoff.
 
 Do not formalize the game by replacing `V` with the singleton
 `{G.vbar μ}`. That singleton correspondence need not satisfy the standing
