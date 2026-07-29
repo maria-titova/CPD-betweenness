@@ -53,7 +53,7 @@ lemma btw_order (hSV : G.SingleValued) (hB : G.Betweenness) (y : ℝ) :
         (μbar = fun θ => ∑ z, a z * μs z θ) →
           ∃ z, μs z ∈ G.levelSet y ∧ ord (μs z) μbar) := by
   obtain ⟨ord, hcomp, htrans, hi, hii⟩ :=
-    btw_order_aux (btwc_vbar_continuousOn hSV) hB y (simplexOn G.Θ) (simplexOn_convex' G.Θ)
+    btw_order_aux (btwc_vbar_continuousOn hSV).upperSemicontinuousOn hB y (simplexOn G.Θ) (simplexOn_convex' G.Θ)
       (subset_refl _)
   have hlevel : ∀ x, x ∈ G.levelSet y ↔ (x ∈ simplexOn G.Θ ∧ G.vbar x = y) :=
     fun x => Iff.rfl

@@ -59,7 +59,25 @@ lemma btw_order_usc
         (∀ z, μs z ∈ simplexOn G.Θ ∧ G.vbar (μs z) ≤ y) →
         (μbar = fun θ => ∑ z, a z * μs z θ) →
           ∃ z, μs z ∈ G.levelSet y ∧ ord (μs z) μbar) := by
-  sorry
+  obtain ⟨ord, hcomp, htrans, hi, hii⟩ :=
+    btw_order_aux husc hB y (simplexOn G.Θ) (simplexOn_convex' G.Θ) (subset_refl _)
+  have hlevel : ∀ x, x ∈ G.levelSet y ↔ (x ∈ simplexOn G.Θ ∧ G.vbar x = y) :=
+    fun x => Iff.rfl
+  refine ⟨ord, ?_, ?_, ?_, ?_⟩
+  · intro x hx x' hx'
+    exact hcomp x ((hlevel x).1 hx).1 ((hlevel x).1 hx).2 x' ((hlevel x').1 hx').1
+      ((hlevel x').1 hx').2
+  · intro x hx x' hx' x'' hx''
+    exact htrans x ((hlevel x).1 hx).1 ((hlevel x).1 hx).2 x' ((hlevel x').1 hx').1
+      ((hlevel x').1 hx').2 x'' ((hlevel x'').1 hx'').1 ((hlevel x'').1 hx'').2
+  · intro x hx u hu hlt α hα hz
+    exact hi x ((hlevel x).1 hx).1 ((hlevel x).1 hx).2 u hu hlt α hα
+      ((hlevel _).1 hz).1 ((hlevel _).1 hz).2
+  · intro μbar hμbar n a μs hpos hsum hmem hcomb
+    obtain ⟨z, ⟨hzmem, hzval⟩, hord⟩ :=
+      hii μbar ((hlevel μbar).1 hμbar).1 ((hlevel μbar).1 hμbar).2 n a μs hpos hsum
+        (fun z => ⟨(hmem z).1, (hmem z).2⟩) hcomb
+    exact ⟨z, (hlevel _).2 ⟨hzmem, hzval⟩, hord⟩
 
 end DisclosureGame
 

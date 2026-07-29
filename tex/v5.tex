@@ -937,7 +937,7 @@ so genericity gives $C_t=C'_t$. Hence $R_{t+1}=R'_{t+1}$, and the induction cont
 
 The proofs of \cref{thm:two-B,thm:thinB-cppbe} rest on the following ordering lemma. We state it for an upper-semicontinuous real-valued function, rather than only for the continuous payoff in the single-valued model, because this is the generality needed for the upper envelope of a thin-B correspondence.
 
-\begin{lemma}\label{lem:btw-order}\ \leanmixed{BetweennessOrder.lean::btw\_order}{BetweennessOrderUSC.lean::btw\_order\_usc}
+\begin{lemma}\label{lem:btw-order}\ \leanproved{BetweennessOrder.lean::btw\_order;\ BetweennessOrderUSC.lean::btw\_order\_usc}
     Let $v:\Delta\Theta\to\mathbb{R}$ be upper semicontinuous and satisfy the betweenness inequalities, and fix $y\in\mathbb{R}$. Write $L:=\{\mu\in\Delta\Theta\sep v(\mu)=y\}$, $L^{++}:=\{v>y\}$, and $L^{--}:=\{v<y\}$. There is a complete and transitive relation $\succeq$ on $L$ such that:
     \begin{enumerate}
         \item[(i)] If $x\in L$, $u\in L^{++}$, $\alpha\in(0,1)$, and $z:=\alpha x+(1-\alpha)u\in L$, then $z\succ x$.

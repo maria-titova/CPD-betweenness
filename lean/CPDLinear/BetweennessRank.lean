@@ -708,78 +708,106 @@ constant on `F`, then `pencilVal t ≡ 0` on `F` (it vanishes at `z` by
   (betweenness), hence exactly `y`; letting `α → 0` and using continuity gives
   `v̄ u = y`, contradicting `y < v̄ u`.
 -/
-lemma pencil_hgood (hcont : ContinuousOn G.vbar (simplexOn G.Θ)) (hB : G.Betweenness)
+lemma pencil_hgood (husc : UpperSemicontinuousOn G.vbar (simplexOn G.Θ))
     (hconv : Convex ℝ F) (hFsub : F ⊆ simplexOn G.Θ)
     (hlep : ∀ x ∈ F, G.vbar x ≤ y → fp x + cp ≤ 0)
-    (hgep : ∀ x ∈ F, y < G.vbar x → 0 ≤ fp x + cp)
     (hlem : ∀ x ∈ F, G.vbar x < y → fm x + cm ≤ 0)
     (hgem : ∀ x ∈ F, y ≤ G.vbar x → 0 ≤ fm x + cm)
     (hsepp : ∃ w ∈ F, fp w + cp ≠ 0) (hsepm : ∃ w ∈ F, fm w + cm ≠ 0)
-    (hA2 : ∃ u ∈ F, y < G.vbar u) :
+    (hbelow : ∃ w ∈ F, G.vbar w < y) :
     ∀ z ∈ F, G.vbar z = y →
       ∃ p ∈ F, ∃ q ∈ F,
         (pencilLam fp fm cp cm z • fp + (1 - pencilLam fp fm cp cm z) • fm) p
           ≠ (pencilLam fp fm cp cm z • fp + (1 - pencilLam fp fm cp cm z) • fm) q := by
   intro z hzF hzy
   set t := pencilLam fp fm cp cm z with ht
-  by_contra hfold;
-  obtain ⟨ u, huF, huy ⟩ := hA2
+  by_contra hfold
   push_neg at hfold
   have hfull : ∀ x ∈ F, t * (fp x + cp) + (1 - t) * (fm x + cm) = 0 := by
     have hLz : t * (fp z + cp) + (1 - t) * (fm z + cm) = 0 := by
-      have h := pencilVal_self fp fm cp cm (hlep z hzF (le_of_eq hzy)) (hgem z hzF (le_of_eq hzy.symm))
-      rw [ht]; simpa [pencilVal] using h
+      have h := pencilVal_self fp fm cp cm (hlep z hzF (le_of_eq hzy))
+        (hgem z hzF (le_of_eq hzy.symm))
+      rw [ht]
+      simpa [pencilVal] using h
     intro x hx
-    have hLx : (t • fp + (1 - t) • fm) x = (t • fp + (1 - t) • fm) z := hfold x hx z hzF
+    have hLx : (t • fp + (1 - t) • fm) x = (t • fp + (1 - t) • fm) z :=
+      hfold x hx z hzF
     simp only [LinearMap.add_apply, LinearMap.smul_apply, smul_eq_mul] at hLx
     nlinarith [hLx, hLz]
-  -- Step 2: Show that $t$ is strictly interior.
-  have ht0 : 0 ≤ t := by
-    apply (pencilLam_mem_Icc (fp := fp) (fm := fm) (cp := cp) (cm := cm) (ha := hlep z hzF (le_of_eq hzy)) (hb := hgem z hzF (le_of_eq hzy.symm))).left
-  have ht1 : t ≤ 1 := by
-    exact pencilLam_mem_Icc _ _ _ _ ( hlep _ hzF ( le_of_eq hzy ) ) ( hgem _ hzF ( le_of_eq hzy.symm ) ) |>.2
+  have ht0 : 0 ≤ t :=
+    (pencilLam_mem_Icc fp fm cp cm (hlep z hzF (le_of_eq hzy))
+      (hgem z hzF (le_of_eq hzy.symm))).1
+  have ht1 : t ≤ 1 :=
+    (pencilLam_mem_Icc fp fm cp cm (hlep z hzF (le_of_eq hzy))
+      (hgem z hzF (le_of_eq hzy.symm))).2
   have ht0' : 0 < t := by
-    grind
+    by_contra ht
+    have : t = 0 := le_antisymm (not_lt.mp ht) ht0
+    obtain ⟨q, hqF, hq⟩ := hsepm
+    specialize hfull q hqF
+    rw [this] at hfull
+    simp at hfull
+    exact hq hfull
   have ht1' : t < 1 := by
-    grind;
-  -- Step 3: Show that $fp u + cp = 0$ and $fm u + cm = 0$.
-  have hau0 : fp u + cp = 0 := by
-    nlinarith [ hfull u huF, hgep u huF huy, hgem u huF ( le_of_lt huy ) ]
-  have hbu0 : fm u + cm = 0 := by
-    nlinarith [ hfull u huF ];
-  -- Step 4: Show that $fp z + cp < 0$.
-  have haz' : fp z + cp < 0 := by
-    by_cases hz : fp z + cp = 0;
-    · grind +locals;
-    · exact lt_of_le_of_ne ( hlep z hzF ( le_of_eq hzy ) ) hz;
-  -- Step 5: Show that for any α ∈ (0,1), the point w_α = α z + (1-α) u is in F and satisfies G.vbar w_α = y.
-  have hw_alpha : ∀ α ∈ Set.Ioo (0 : ℝ) 1, (fun θ => α * z θ + (1 - α) * u θ) ∈ F ∧ G.vbar (fun θ => α * z θ + (1 - α) * u θ) = y := by
-    intro α hα
-    have hw_alpha_mem : (fun θ => α * z θ + (1 - α) * u θ) ∈ F := by
-      exact hconv hzF huF hα.1.le ( sub_nonneg.2 hα.2.le ) ( by linarith [ hα.1, hα.2 ] )
-    have hw_alpha_vbar : G.vbar (fun θ => α * z θ + (1 - α) * u θ) = y := by
-      have hw_alpha_vbar : G.vbar (fun θ => α * z θ + (1 - α) * u θ) ≤ y := by
-        have hw_alpha_vbar : fp (fun θ => α * z θ + (1 - α) * u θ) + cp < 0 := by
-          have hlin : fp (fun θ => α * z θ + (1 - α) * u θ) = α * fp z + (1 - α) * fp u := by
-            have he : (fun θ => α * z θ + (1 - α) * u θ) = α • z + (1 - α) • u := by
-              funext θ; simp [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
-            rw [he, map_add, map_smul, map_smul]; simp [smul_eq_mul]
-          rw [hlin]; nlinarith [haz', hau0, hα.1]
-        exact le_of_not_gt fun h => by linarith [ hgep _ hw_alpha_mem h ] ;
-      have := hB z ( hFsub hzF ) u ( hFsub huF ) α hα;
-      grind
-    exact ⟨hw_alpha_mem, hw_alpha_vbar⟩;
-  -- Step 6: Show that the sequence $w_n = \alpha_n z + (1-\alpha_n) u$ converges to $u$.
-  have hw_n_conv : Filter.Tendsto (fun n : ℕ => fun θ => (1 / (n + 2)) * z θ + (1 - 1 / (n + 2)) * u θ) Filter.atTop (nhds u) := by
-    rw [ tendsto_pi_nhds ];
-    intro θ; exact (by
-    exact le_trans ( Filter.Tendsto.add ( Filter.Tendsto.mul ( tendsto_const_nhds.div_atTop ( Filter.tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop ) ) tendsto_const_nhds ) ( Filter.Tendsto.mul ( tendsto_const_nhds.sub ( tendsto_const_nhds.div_atTop ( Filter.tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop ) ) ) tendsto_const_nhds ) ) ( by norm_num ));
-  -- Since $G.vbar$ is continuous on $simplexOn G.Θ$, we have $G.vbar u = y$.
-  have h_cont : Filter.Tendsto (fun n : ℕ => G.vbar (fun θ => (1 / (n + 2)) * z θ + (1 - 1 / (n + 2)) * u θ)) Filter.atTop (nhds (G.vbar u)) := by
-    apply Filter.Tendsto.comp (hcont.continuousWithinAt (hFsub huF));
-    rw [ tendsto_nhdsWithin_iff ];
-    exact ⟨ hw_n_conv, Filter.Eventually.of_forall fun n => hFsub ( hw_alpha ( 1 / ( n + 2 ) ) ⟨ by positivity, by rw [ div_lt_iff₀ ] <;> linarith ⟩ |>.1 ) ⟩;
-  exact absurd ( tendsto_nhds_unique h_cont ( tendsto_const_nhds.congr' ( by filter_upwards [ Filter.eventually_gt_atTop 0 ] with n hn; rw [ hw_alpha _ ⟨ by positivity, by rw [ div_lt_iff₀ ] <;> linarith ⟩ |>.2 ] ) ) ) ( by linarith )
+    by_contra ht
+    have : t = 1 := le_antisymm ht1 (not_lt.mp ht)
+    obtain ⟨q, hqF, hq⟩ := hsepp
+    specialize hfull q hqF
+    rw [this] at hfull
+    simp at hfull
+    exact hq hfull
+  obtain ⟨w, hwF, hwy⟩ := hbelow
+  have haw0 : fp w + cp = 0 := by
+    nlinarith [hfull w hwF, hlep w hwF (le_of_lt hwy), hlem w hwF hwy]
+  have hbw0 : fm w + cm = 0 := by
+    nlinarith [hfull w hwF, hlep w hwF (le_of_lt hwy), hlem w hwF hwy]
+  have hbzero : ∀ q ∈ F, fm q + cm = 0 := by
+    intro q hqF
+    let s : ℕ → (T → ℝ) := fun n θ => (1 / (n + 2 : ℝ)) * q θ +
+      (1 - 1 / (n + 2 : ℝ)) * w θ
+    have hsF : ∀ n, s n ∈ F := by
+      intro n
+      apply hconv hqF hwF
+      · positivity
+      · have hn : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+        have hden : (0 : ℝ) < (n : ℝ) + 2 := by linarith
+        have hone : (1 : ℝ) ≤ (n : ℝ) + 2 := by linarith
+        exact sub_nonneg.mpr ((div_le_one hden).mpr hone)
+      · ring
+    have hsconv : Filter.Tendsto s Filter.atTop (nhds w) := by
+      rw [tendsto_pi_nhds]
+      intro θ
+      exact (by
+        exact le_trans (Filter.Tendsto.add
+          (Filter.Tendsto.mul
+            (tendsto_const_nhds.div_atTop
+              (Filter.tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop))
+            tendsto_const_nhds)
+          (Filter.Tendsto.mul
+            (tendsto_const_nhds.sub
+              (tendsto_const_nhds.div_atTop
+                (Filter.tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop)))
+            tendsto_const_nhds)) (by norm_num))
+    have hswithin : Filter.Tendsto s Filter.atTop (nhdsWithin w (simplexOn G.Θ)) := by
+      rw [tendsto_nhdsWithin_iff]
+      exact ⟨hsconv, Filter.Eventually.of_forall fun n => hFsub (hsF n)⟩
+    have hev : ∀ᶠ n in Filter.atTop, G.vbar (s n) < y :=
+      (husc w (hFsub hwF)) y hwy |>.filter_mono hswithin
+    obtain ⟨n, hn⟩ := hev.exists
+    have ha : fp (s n) + cp ≤ 0 := hlep (s n) (hsF n) (le_of_lt hn)
+    have hb : fm (s n) + cm ≤ 0 := hlem (s n) (hsF n) hn
+    have hb0 : fm (s n) + cm = 0 := by
+      nlinarith [hfull (s n) (hsF n)]
+    have hlin : fm (s n) = (1 / (n + 2 : ℝ)) * fm q +
+        (1 - 1 / (n + 2 : ℝ)) * fm w := by
+      change fm ((1 / (n + 2 : ℝ)) • q + (1 - 1 / (n + 2 : ℝ)) • w) = _
+      rw [map_add, map_smul, map_smul]
+      simp [smul_eq_mul]
+    rw [hlin] at hb0
+    have hnpos : 0 < (1 / (n + 2 : ℝ)) := by positivity
+    nlinarith [hbw0]
+  obtain ⟨q, hqF, hq⟩ := hsepm
+  exact hq (hbzero q hqF)
 
 end Pencil
 
@@ -787,7 +815,7 @@ end Pencil
 affine dimension `d = Module.finrank ℝ (vectorSpan ℝ F)`.  In the substantive
 case (a level point and a strictly-above point both exist) it ranks the level
 set by the **two-separator pencil** described above. -/
-lemma btw_order_aux_rank (hcont : ContinuousOn G.vbar (simplexOn G.Θ))
+lemma btw_order_aux_rank (husc : UpperSemicontinuousOn G.vbar (simplexOn G.Θ))
     (hB : G.Betweenness) (y : ℝ) :
     ∀ d : ℕ, ∀ F : Set (T → ℝ), Module.finrank ℝ (vectorSpan ℝ F) = d →
       Convex ℝ F → F ⊆ simplexOn G.Θ →
@@ -854,8 +882,8 @@ lemma btw_order_aux_rank (hcont : ContinuousOn G.vbar (simplexOn G.Θ))
               ∃ p ∈ F, ∃ q ∈ F,
                 (pencilLam fp fm cp cm z • fp + (1 - pencilLam fp fm cp cm z) • fm) p
                   ≠ (pencilLam fp fm cp cm z • fp + (1 - pencilLam fp fm cp cm z) • fm) q :=
-            pencil_hgood fp fm cp cm y F hcont hB hconv hFsub hlep hgep hlem hgem hsepp hsepm
-              ⟨u0, hu0F, hu0y⟩
+            pencil_hgood fp fm cp cm y F husc hconv hFsub hlep hlem hgem hsepp hsepm
+              ⟨hbelow.some, hbelow.some_mem.1, hbelow.some_mem.2.2⟩
           have hslice_eq : ∀ t, F ∩ {x | pencilVal fp fm cp cm t x = 0}
               = F ∩ {x | (t • fp + (1 - t) • fm) x = -(t * cp + (1 - t) * cm)} := by
             intro t; ext x
@@ -970,7 +998,7 @@ lemma btw_order_aux_rank (hcont : ContinuousOn G.vbar (simplexOn G.Θ))
 it provides a complete transitive relation on `S_F` with the strict-improvement
 property (i) and the decomposition property (ii), both relativized to `F`.
 Specializing to `F = Δ Θ` yields `btw_order`. -/
-lemma btw_order_aux (hcont : ContinuousOn G.vbar (simplexOn G.Θ))
+lemma btw_order_aux (husc : UpperSemicontinuousOn G.vbar (simplexOn G.Θ))
     (hB : G.Betweenness) (y : ℝ) :
     ∀ F : Set (T → ℝ), Convex ℝ F → F ⊆ simplexOn G.Θ →
     ∃ ord : (T → ℝ) → (T → ℝ) → Prop,
@@ -988,7 +1016,7 @@ lemma btw_order_aux (hcont : ContinuousOn G.vbar (simplexOn G.Θ))
         (μbar = fun θ => ∑ z, a z * μs z θ) →
           ∃ z, (μs z ∈ F ∧ G.vbar (μs z) = y) ∧ ord (μs z) μbar) := by
   intro F hconv hsub
-  exact btw_order_aux_rank hcont hB y (Module.finrank ℝ (vectorSpan ℝ F)) F rfl hconv hsub
+  exact btw_order_aux_rank husc hB y (Module.finrank ℝ (vectorSpan ℝ F)) F rfl hconv hsub
 
 end DisclosureGame
 
