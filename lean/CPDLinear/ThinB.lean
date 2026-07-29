@@ -35,6 +35,7 @@ The proofs are left as `sorry` for Aristotle.  Proof outline (see the `.tex`):
 -/
 
 open Set Filter Topology
+open scoped BigOperators
 
 namespace CPDLinear
 
@@ -117,6 +118,30 @@ theorem thinBUpper_isBetweenness (Θ : Finset T) (hΘ : Θ.Nonempty)
 theorem thinBLower_isBetweenness (Θ : Finset T) (hΘ : Θ.Nonempty)
     (v : (T → ℝ) → ℝ) (hB : IsBetweenness Θ v) :
     IsBetweenness Θ (thinBLower Θ v) := by
+  sorry
+
+/-! ## Goal 3: exact values at mixtures with a common feasible payoff -/
+
+/-- The convexified cluster set is the interval between its lower and upper
+cluster envelopes.  This is the pointwise interval identity used throughout
+the game-level thin-B argument. -/
+theorem thinB_eq_Icc (Θ : Finset T) (hΘ : Θ.Nonempty)
+    (v : (T → ℝ) → ℝ) (hB : IsBetweenness Θ v)
+    (μ : T → ℝ) (hμ : μ ∈ simplexOn Θ) :
+    thinB Θ v μ = Set.Icc (thinBLower Θ v μ) (thinBUpper Θ v μ) := by
+  sorry
+
+/-- **Common-value intersection law.**  If finitely many beliefs have a common
+payoff `w` in their thin-B values, then the thin-B value at every
+strictly-positive mixture is exactly the intersection of those values. -/
+theorem thinB_common_value (Θ : Finset T) (hΘ : Θ.Nonempty)
+    (v : (T → ℝ) → ℝ) (hB : IsBetweenness Θ v)
+    (n : ℕ) (a : Fin n → ℝ) (μs : Fin n → (T → ℝ)) (w : ℝ)
+    (hpos : ∀ i, 0 < a i) (hsum : ∑ i, a i = 1)
+    (hμ : ∀ i, μs i ∈ simplexOn Θ)
+    (hw : ∀ i, w ∈ thinB Θ v (μs i)) :
+    thinB Θ v (fun θ => ∑ i, a i * μs i θ) =
+      {x | ∀ i, x ∈ thinB Θ v (μs i)} := by
   sorry
 
 end CPDLinear

@@ -14,12 +14,15 @@
 \newtheorem{proposition}{Proposition}
 \newtheorem{lemma}{Lemma}
 \newtheorem{corollary}{Corollary}
+\newtheorem{conjecture}{Conjecture}
 \newtheorem{remark}{Remark}
 \newtheorem{definition}{Definition}
 \newtheorem{assumption}{Assumption}
 \newtheorem{example}{Example}
 \crefname{assumption}{Assumption}{Assumptions}
 \Crefname{assumption}{Assumption}{Assumptions}
+\crefname{conjecture}{Conjecture}{Conjectures}
+\Crefname{conjecture}{Conjecture}{Conjectures}
 \crefname{algocf}{Algorithm}{Algorithms}
 \Crefname{algocf}{Algorithm}{Algorithms}
 \crefformat{enumi}{#2#1#3}
@@ -57,6 +60,14 @@
 % with QC/B/M-C. Sufficient conditions (nested subsets) keep distinct full-word
 % names: free disposal, revelation aversion, decomposability. Rename here only.
 \newcommand{\DEG}{\textup{PD}}
+
+%% Lean coverage tags. Every formal definition/result in this document names
+%% its declaration in lean/CPDLinear. "Pending" means that the declaration
+%% exists with a `sorry` and is the next proof obligation for the Lean agent.
+\newcommand{\leanproved}[1]{{\footnotesize\textsf{\textcolor{green!55!black}{[Lean proved: \texttt{#1}]}}}}
+\newcommand{\leanaxiom}[1]{{\footnotesize\textsf{\textcolor{blue!65!black}{[Lean proved modulo Kakutani: \texttt{#1}]}}}}
+\newcommand{\leanpending}[1]{{\footnotesize\textsf{\textcolor{orange!80!black}{[Lean pending: \texttt{#1}]}}}}
+\newcommand{\leanmixed}[2]{{\footnotesize\textsf{\textcolor{green!55!black}{[Lean proved: \texttt{#1}]}\ \textcolor{orange!80!black}{[pending: \texttt{#2}]}}}}
 
 %% bibliography using biber / biblatex
 \usepackage[
@@ -106,7 +117,7 @@
 There are two players, a sender and a receiver. First, the sender learns his type $\theta \in \Theta$ drawn from a common prior $\mu^0 \in \Delta \Theta$.\footnote{For a finite set $S$, $\Delta S$ denotes the set of probability distributions over $S$.} Then, he sends a message $m \in \Msg$ from a non-empty set $M(\theta)$, where $M: \Theta \to 2^{\Msg} \smallsetminus \{ \varnothing \}$ is the message mapping. Finally, the receiver updates her belief and acts, and payoffs are realized. We employ the belief-based approach and abstract away from the receiver's action. The sender's payoff primitive is a correspondence $V: \Delta \Theta \rightrightarrows \mathbb{R}$; its envelopes are $\overline{v}(\mu) := \max V(\mu)$ and $\underline{v}(\mu) := \min V(\mu)$.
 
 Except where explicitly noted, we assume the following.
-\begin{assumption}\label{assumption:game}
+\begin{assumption}\label{assumption:game}\ \leanproved{Game.lean::DisclosureGame}
 \begin{enumerate}[label=(A\arabic*), ref=(A\arabic*)]
     \item \label{A1:finite-sets} $\Theta$ and $\Msg$ are finite.
     \item \label{A2:full-support} $\mu^0$ has full support.
@@ -117,7 +128,7 @@ Except where explicitly noted, we assume the following.
 Here, \cref{A3:message-coverage} imposes that every message is feasible for at least one type. Under \cref{A4:V-uhc}, the upper envelope $\overline{v}$ is upper semicontinuous, the lower envelope $\underline{v}$ is lower semicontinuous, and $V(\mu) = [\underline{v}(\mu), \overline{v}(\mu)]$.
 
 Our main object of study is a disclosure game defined as follows.
-\begin{definition}\label{dfn:game}
+\begin{definition}\label{dfn:game}\ \leanproved{Game.lean::DisclosureGame}
     A \emph{disclosure game} $G$ is a tuple $(\Theta,\Msg,M,\mu^0,V)$ satisfying conditions \cref{A1:finite-sets}--\cref{A4:V-uhc}.
 \end{definition}
 
@@ -161,7 +172,7 @@ Since $\mu^0$ has full support, $\mu^0_{\wT}$ is supported exactly on $\wT$. We 
 
 Fix a disclosure game $G = (\Theta,\Msg,M,\mu^0,V)$ and a non-empty set of types $C \subseteq \Theta$. A \emph{coalition strategy on $C$} is a sender strategy $\sigma$ of the restricted game $G \vert_C$. The posterior beliefs induced by $\sigma$ are the beliefs $\mu_\sigma(\cdot \sep m)$ already defined for strategies, computed in the restricted game $G\vert_C$ and zero-extended to $\Delta\Theta$ when used in the original game. Since game restriction is transitive, the coalition-induced beliefs depend only on $C$ and $\sigma$, not on which larger (restricted) game contains $C$.
 
-\begin{definition}\label{dfn:coalition}
+\begin{definition}\label{dfn:coalition}\ \leanproved{Coalition.lean::Coalition}
     A \emph{coalition} of a disclosure game $G$ is a triple $(C,\sigma,w)$ such that
     \begin{enumerate}[label=(C\arabic*), ref=(C\arabic*)]
     \item \label{C1} $C \subseteq \Theta$ is non-empty;
@@ -178,14 +189,14 @@ Fix a disclosure game $G = (\Theta,\Msg,M,\mu^0,V)$ and a non-empty set of types
 \end{definition}
  A coalition is not merely a subset of types; it bundles the participating types, their evidence strategy, and their common payoff. The coalition payoff is constant across all messages in the coalition's evidence, and hence across messages sent by each coalition type; this is what aligns coalitions with equilibrium payoffs in \cref{sec:pbe}. Note that the reverse inclusion $C \subseteq M^{-1}(X(\sigma))$ holds automatically since each $\theta \in C$ uses messages from $M(\theta) \cap X(\sigma)$; consequently, condition \cref{C3} becomes $M^{-1}(X(\sigma)) = C$ and states that the types participating in the coalition are exactly the types that can produce the coalition's evidence. Finally, every $m \in X(\sigma)$ is on path, so the beliefs in \cref{C4} are well-defined.
 
-\begin{remark}\label{remark:coalitions-exist}
+\begin{remark}\label{remark:coalitions-exist}\ \leanproved{Coalition.lean::exists\_coalition}
     Fix a disclosure game $G$ and a message $m \in \Msg$ and let $\sigma^m$ be a coalition strategy on $P(m)$ under which every type that has access to message $m$ sends it with probability one. Then, for every $w \in V( \mu^0_{P(m)})$, the triple $(P(m),\sigma^m,w)$ is a coalition of $G$. In particular, every disclosure game admits a coalition.
 \end{remark}
 \begin{proof}
     $P(m)$ is non-empty by \cref{A3:message-coverage}; also, $m \in M(\theta)$ for each $\theta \in P(m)$, so $\sigma^m$ is a coalition strategy in $G\vert_{P(m)}$ with $X(\sigma^m) = \{ m \}$. Next, $M^{-1}(X(\sigma^m)) = P(m)$ by the definition of $P(m)$. Finally, the belief induced by $\sigma^m$ is $\mu^0_{P(m)}$ by Bayes' rule. Consequently, $(P(m),\sigma^m,w)$ is a coalition for every $w \in V( \mu^0_{P(m)} )$.
 \end{proof}
 
-\begin{definition}
+\begin{definition}\ \leanproved{Partition.lean::Partition}
     A \emph{partition} of a disclosure game $G$ is a finite sequence
     \[
         \Pi = \{ (C_t,\sigma_t,w_t) \}_{t=1}^T
@@ -214,7 +225,7 @@ All partitions arise from the recursion formalized by the following algorithm:
 \end{algorithm}
 
 A \emph{run} of the algorithm is one of its possible executions, with one selection per step. The algorithm \emph{terminates} when the type space is exhausted; its \emph{output} is the selected sequence $\{ (C_t,\sigma_t,w_t) \}_{t=1}^T$. At every step of every run, a selection exists by \cref{remark:coalitions-exist}, each step removes a non-empty cell, and each output satisfies the definition of a partition. In particular:
-\begin{remark}\label{remark:partitions-exist}
+\begin{remark}\label{remark:partitions-exist}\ \leanproved{Partition.lean::exists\_partition}
     Every disclosure game admits a partition, and every partition has at most $|\Theta|$ steps.
 \end{remark}
 \begin{proof}
@@ -223,7 +234,7 @@ A \emph{run} of the algorithm is one of its possible executions, with one select
 
 By transitivity of game restriction, $G_t\vert_{C_t} = G\vert_{C_t}$, so $\sigma_t$ is simply a coalition strategy on $C_t$ with beliefs $\mu_{\sigma_t}$ that do not depend on the larger game in which the coalition is viewed. Similarly, the common-payoff condition \cref{C4} of the step-$t$ coalition is the same whether viewed in $G_t\vert_{C_t}$, $G\vert_{C_t}$, or $G$. The only condition that uses the residual set $R_t$ is exclusivity \cref{C3}: no type in $R_t \smallsetminus C_t$ can produce evidence in $X_t$. However, types in $C_1 \cups C_{t-1}$ may be able to produce that evidence.
 
-\begin{definition}
+\begin{definition}\ \leanproved{Partition.lean::toSenderStrategy}
     Given a partition $\Pi = \{ (C_t,\sigma_t,w_t) \}_{t=1}^T$ of $G$, its associated sender strategy $\sigma^{\Pi}: \Theta \to \Delta \Msg$ is obtained by letting every $\theta \in C_t$ use $\sigma_t(\cdot \sep \theta)$ zero-extended to $\Delta \Msg$. A sender strategy is a \emph{partition strategy} if it is associated with some partition.
 \end{definition}
 The associated map $\sigma^\Pi$ is a sender strategy of $G$: if $\theta\in C_t$, then
@@ -240,7 +251,7 @@ $m\in X_t$, only types in $C_t$ send $m$ under $\sigma^\Pi$; in particular, $m$ 
 
 Fix a disclosure game $G = (\Theta,\Msg,M,\mu^0,V)$.
 
-\begin{definition}\label{dfn:set-feasible-beliefs}
+\begin{definition}\label{dfn:set-feasible-beliefs}\ \leanproved{Feasible.lean::feasibleBeliefs}
     For $m \in \Msg$, the \emph{set of feasible beliefs} is
     \[
         \mathcal{F}(m) := \{ \mu_\sigma (\cdot \sep m) \sep \sigma \text{ is a sender strategy of } G \text{ with } m \in X(\sigma) \}.
@@ -248,7 +259,7 @@ Fix a disclosure game $G = (\Theta,\Msg,M,\mu^0,V)$.
 \end{definition}
 Feasible beliefs are those that arise, via Bayes' rule, under some sender strategy. This is the sense in which $\mathcal{F}(m)$ captures verifiability: a type forced to send $m$ does so under every strategy, so its prior weight can never be discounted relative to the types that send $m$ voluntarily. Each $\mathcal{F}(m)$ is a non-empty compact convex polytope, parametrized explicitly by the mixing weights of the types that can send $m$ (see \cref{lem:feasible-polytope} in the appendix).
 
-\begin{definition}\label{dfn:skeptical-payoff}
+\begin{definition}\label{dfn:skeptical-payoff}\ \leanproved{Feasible.lean::skeptical}
     For a type $\theta \in \Theta$, the \emph{skeptical payoff} is
     \[
         \underline{u}(\theta) := \max_{m \in M(\theta)} \min_{\mu \in \mathcal{F}(m)} \underline{v}(\mu).
@@ -256,7 +267,7 @@ Feasible beliefs are those that arise, via Bayes' rule, under some sender strate
 \end{definition}
  The skeptical payoff is the payoff type $\theta$ obtains from his best message when, at every message, the receiver holds the least favorable feasible belief and breaks ties against the sender.\footnote{The maximum and minimum are attained because $\underline{v}$ is lower semicontinuous and $\mathcal{F}(m)$ is non-empty and compact (see \cref{lem:feasible-polytope} in the appendix).}
 
-\begin{definition}\label{dfn:PBE}
+\begin{definition}\label{dfn:PBE}\ \leanproved{PBE.lean::IsPBE}
     A sender strategy $\sigma: \Theta \to \Delta \Msg$ is a \emph{PBE strategy} if there exist a belief system $\mu: \Msg \to \Delta \Theta$ and a sender payoff function $r: \Msg \to \mathbb{R}$ such that:
     \begin{enumerate}
         \item Beliefs are feasible:
@@ -287,7 +298,7 @@ If $(\sigma,\mu,r)$ is a PBE, then sequential rationality makes $r$ constant on 
 \]
 which we call the sender's \emph{equilibrium payoff} of type $\theta$ in that PBE. No PBE can yield sender payoff below the skeptical payoff $\underline{u}(\theta)$.
 
-\begin{definition}\label{dfn:IR}
+\begin{definition}\label{dfn:IR}\ \leanproved{PBEChar.lean::Partition.IsIR}
     A partition $\Pi = \{ (C_t,\sigma_t,w_t) \}_{t=1}^T$ of $G$ is \emph{individually rational (IR)} if
     \begin{equation}\label{eqn:IR}
         w_t \geq \underline{u}(\theta) \quad \text{ for every } t \text{ and every } \theta \in C_t. \tag{IR}
@@ -298,7 +309,7 @@ Throughout, the skeptical payoff $\underline{u}(\theta)$ is the one computed in 
 The PBE characterization below rests on two simple observations.
 First, the partition strategy preserves the beliefs generated by its cells: if $m\in X_t$, then under $\sigma^\Pi$ only types in $C_t$ send $m$, so the Bayes posterior after $m$ is the posterior generated by $\sigma_t$ in $G\vert_{C_t}$, viewed as a belief in $\Delta\Theta$. Second, skeptical payoffs are the relevant off-path benchmark.
 In any PBE, type $\theta$ receives at least $\underline u(\theta)$; conversely, after any unused message, the receiver can select a feasible belief and a compatible payoff that give no type more than its skeptical deviation value.
-\begin{proposition}\label{prop:pbe-characterization}
+\begin{proposition}\label{prop:pbe-characterization}\ \leanproved{PBEChar.lean::pbe\_characterization}
     A sender strategy $\sigma$ is a PBE strategy if and only if $\sigma$ is associated with an individually rational partition $\Pi = \{ (C_t,\sigma_t,w_t) \}_{t=1}^T$ with $w_1 \geq \ldots \geq w_T$.
     Furthermore, every PBE strategy is associated with an individually rational partition with strictly decreasing payoffs $w_1 > \ldots > w_T$.
 \end{proposition}
@@ -322,7 +333,7 @@ Call a partition that is IR with non-increasing payoffs a \emph{PBE partition}. 
 Note that \cref{alg:pbe-partition} uses a stronger (but ultimately equivalent) version of IR: at step $t$, it imposes $w_t\geq\max_{\theta\in R_t}\underline{u}(\theta)$ rather than only $w_t\geq\max_{\theta\in C_t}\underline{u}(\theta)$.
 For partitions with non-increasing payoffs, this stronger condition does not change the set of completed partitions.
 It is also easier to work with recursively: the admissible interval $\bigl[\max_{\theta\in R_t}\underline{u}(\theta),\,w_{t-1}\bigr]$ depends only on $R_t$ and $w_{t-1}$, not on which candidate coalition $(C_t,\sigma_t,w_t)$ is being considered.
-\begin{lemma}\label{lem:strong-IR}
+\begin{lemma}\label{lem:strong-IR}\ \leanproved{PBEChar.lean::isIR\_iff\_sup\_le}
     Let $\Pi=\{(C_t,\sigma_t,w_t)\}_{t=1}^T$ be a partition of $G$ with $w_1\geq\cdots\geq w_T$. Then $\Pi$ is IR if and only if
     \[
         w_t\geq \max_{\theta\in R_t}\underline{u}(\theta)
@@ -345,7 +356,7 @@ Fix a disclosure game $G=(\Theta,\Msg,M,\mu^0,V)$. For a partition $\Pi=\{(C_t,\
 \]
 denote the set of types whose partition payoff is strictly below $\widetilde w$.
 
-\begin{definition}\label{dfn:blocking}
+\begin{definition}\label{dfn:blocking}\ \leanproved{CoalitionProof.lean::BlockingCoalition}
     Let $\Pi$ be a partition of $G$.
     \begin{enumerate}
         \item[(i)] $(\widetilde C,\widetilde\sigma,\widetilde w)$ is a
@@ -381,11 +392,11 @@ The greedy selection defined below picks, at each step, the largest available co
 \]
 the set of coalition payoffs attainable in the restricted game $G\vert_R$. The following lemma guarantees that the maxima appearing below are attained whenever they are taken over a non-empty set.
 
-\begin{lemma}\label{lem:coalition-compact}
+\begin{lemma}\label{lem:coalition-compact}\ \leanproved{CoalitionPayoffs.lean::isCompact\_coalitionPayoffs}
     For every non-empty $R\subseteq\Theta$, the coalition payoff set $\W_R$ is non-empty and compact.
 \end{lemma}
 
-\begin{definition}\label{dfn:greedy}
+\begin{definition}\label{dfn:greedy}\ \leanproved{CoalitionProof.lean::Partition.IsGreedy}
     A partition $\Pi=\{(C_t,\sigma_t,w_t)\}_{t=1}^T$ of $G$ is
     \emph{greedy} if, for every $t$ (with $w_0:=\infty$),
     \[
@@ -415,7 +426,7 @@ The definition is implemented by the same recursion as the PBE partition algorit
     }
 \end{algorithm}
 
-\begin{proposition}\label{prop:cppbe-characterization}
+\begin{proposition}\label{prop:cppbe-characterization}\ \leanproved{CoalitionProof.lean::cppbe\_characterization}
     A partition of $G$ is a coalition-proof PBE partition if and only if it is greedy. Consequently, a sender strategy is a coalition-proof PBE strategy if and only if it is associated with some greedy partition.
 \end{proposition}
 
@@ -436,15 +447,15 @@ Fix a disclosure game $G=(\Theta,\Msg,M,\mu^0,V)$.
 By \cref{prop:cppbe-characterization}, a coalition-proof PBE exists if and only if some run of \cref{alg:greedy-partition} completes. This isolated version retains the betweenness route to existence and the definitions and results on which it depends.
 
 Some of our results establish essential uniqueness of coalition-proof PBE under the following genericity condition, which requires distinct type sets to yield distinct pooling payoffs $\overline{v}(\mu^0_C)$\footnote{Each existence result restricts the upper envelope by a structural condition such as quasiconcavity or betweenness. Functions of either kind are not closed under addition, hence do not form a vector space, so a measure-theoretic notion of genericity such as prevalence \parencite{huntsaueryorke} does not apply. We therefore use injectivity, which is topologically generic: within each such class, under the $\|\cdot\|_\infty$ metric, the envelopes with $C\mapsto\overline{v}(\mu^0_C)$ injective form an open dense set, since $\Theta$ is finite.}:
-\begin{definition}\label{dfn:generic}
+\begin{definition}\label{dfn:generic}\ \leanproved{Existence.lean::Generic}
     Game $G$ is \emph{generic} if the map $C\mapsto\overline{v}(\mu^0_C)$ is injective on non-empty subsets $C\subseteq\Theta$.
 \end{definition}
 
-\subsection{Betweenness}\label{sec:existence-betweenness}
+\subsection{Single-valued betweenness}\label{sec:existence-betweenness}
 
-We next strengthen the payoff restriction and, in return, impose no condition on the message mapping. The strengthened restriction is betweenness: the payoff of a mixture lies between the endpoint payoffs, or equivalently all upper and lower level sets of $v$ are convex. It applies to a single-valued payoff, so throughout this subsection $V=\{v\}$; the two envelopes coincide, $\overline v=\underline v=v$, and $v$ is continuous by \cref{A4:V-uhc}. We impose single-valuedness because the disclosure papers whose existence arguments use betweenness, \textcite{hart2017} and \textcite{bertomeucianciaruso}, both work with a real-valued payoff.\footnote{\textcite{hart2017} give a microfoundation: betweenness holds whenever the receiver's expected utility is single-peaked in her action at every belief, and for $|\Theta|=2$ it reduces to monotonicity of $v$ along the simplex. Their single-valued payoff is the receiver's single-peaked reward as a function of the belief; \textcite{bertomeucianciaruso} impose their convexity condition (CV), requiring the value of a merged belief to lie between the worst and best values of its components, on a real-valued payoff.}
+We first impose betweenness on a single-valued payoff and then extend the conclusion to the thin-B correspondences of \cref{sec:existence-thinB}. Betweenness requires the payoff of a mixture to lie between the endpoint payoffs, or equivalently all upper and lower level sets of $v$ to be convex. Throughout this subsection $V=\{v\}$; the two envelopes coincide, $\overline v=\underline v=v$, and $v$ is continuous by \cref{A4:V-uhc}. This is the setting of the disclosure papers whose existence arguments use betweenness, \textcite{hart2017} and \textcite{bertomeucianciaruso}.\footnote{\textcite{hart2017} give a microfoundation: betweenness holds whenever the receiver's expected utility is single-peaked in her action at every belief, and for $|\Theta|=2$ it reduces to monotonicity of $v$ along the simplex. Their single-valued payoff is the receiver's single-peaked reward as a function of the belief; \textcite{bertomeucianciaruso} impose their convexity condition (CV), requiring the value of a merged belief to lie between the worst and best values of its components, on a real-valued payoff.}
 
-\begin{definition}\label{dfn:B}
+\begin{definition}\label{dfn:B}\ \leanproved{Betweenness.lean::Betweenness,\ StrictBetweenness}
     The payoff satisfies \emph{betweenness} (B) if $V=\{v\}$ and $v$ is both quasiconcave and quasiconvex: for all $\mu,\mu'\in\Delta\Theta$ and $\lambda\in(0,1)$,
     \[
         \min\{v(\mu),v(\mu')\}
@@ -458,7 +469,7 @@ We next strengthen the payoff restriction and, in return, impose no condition on
 
 Like QC, betweenness is inherited by every restricted game. Our first result shows that every coalition attains the pooling value of its type set, even though a coalition may have to spread over several messages when no single message is available to all of its types.
 
-\begin{lemma}\label{lem:value-id}
+\begin{lemma}\label{lem:value-id}\ \leanproved{BetweennessCore.lean::value\_id}
     Assume B. Then every coalition $(C,\sigma,w)$ of $G$ satisfies $w=v(\mu^0_C)$.
 \end{lemma}
 
@@ -479,7 +490,7 @@ The maximum is over finitely many sets, and each relative preimage in the maximu
 
 The bound $\max\W_R\leq v^*(R)$ is immediate: every coalition $(C,\sigma,w)$ of $G\vert_R$ has type set $C=M^{-1}_R(X(\sigma))$, so \cref{lem:value-id} gives $w=v(\mu^0_C)\leq v^*(R)$. The content of the following lemma is that this bound is attained.
 
-\begin{lemma}\label{lem:btw-attained}
+\begin{lemma}\label{lem:btw-attained}\ \leanproved{BetweennessCore.lean::btw\_attained}
     Assume B. For every non-empty $R\subseteq\Theta$, the game $G\vert_R$ admits a coalition paying $v^*(R)$; consequently $\max\W_R=v^*(R)$.
 \end{lemma}
 
@@ -487,7 +498,7 @@ The proof runs the equilibrium machinery inside an auxiliary game whose message 
 
 Recall that showing existence of coalition-proof PBE amounts to showing that some run of \cref{alg:greedy-partition} completes. That algorithm removes a highest-paying coalition from the residual game $G_t$ at each step; by \cref{lem:btw-attained}, the highest coalition payoff available in $G_t$ is $\max\W_t=v^*(R_t)$. For a run to halt, maximum coalition payoffs must rise at some step: the residual game $G_{t+1}$ must admit a coalition paying more than the one removed from $G_t$. The next lemma shows that, if this happens, the union of the type sets of the two coalitions is exactly the preimage of their combined evidence, and its value equals the old maximum.
 
-\begin{lemma}\label{lem:btw-merging}
+\begin{lemma}\label{lem:btw-merging}\ \leanproved{BetweennessCore.lean::btw\_merging,\ btw\_merging\_impossible}
     Assume B. Let $R\subseteq\Theta$ be non-empty, let $(C,\sigma,w)$ be a coalition of $G\vert_R$ with $w=\max\W_R$, and suppose $R':=R\smallsetminus C$ is non-empty and $G\vert_{R'}$ admits a coalition $(C',\sigma',w')$ with $w'>w$. Then
     \[
         M^{-1}_R\bigl(X(\sigma)\cup X(\sigma')\bigr)=C\cup C'
@@ -503,7 +514,7 @@ Recall that showing existence of coalition-proof PBE amounts to showing that som
 
 Either strict betweenness or genericity rules this configuration out: under B$^*$ by the last part of \cref{lem:btw-merging}, and under genericity because $C\cup C'$ would be a type set distinct from $C$ but with the same value $w$, which \cref{dfn:generic} forbids. In either case, removing a payoff-maximal coalition never raises the residual maximum, so the greedy recursion never stalls.
 
-\begin{theorem}\label{thm:two}
+\begin{theorem}\label{thm:two}\ \leanmixed{Theorem2.lean::two\_noHalt\_full,\ bstar\_cppbe\_iff\_coe,\ two\_unique}{BetweennessPending.lean::two\_generic\_noHalt\_full,\ generic\_cppbe\_iff\_coe,\ two\_B\_generic\_unique}
     Assume B, and suppose that B$^*$ holds or that $G$ is generic. Then:
     \begin{enumerate}
         \item[(i)] No run of \cref{alg:greedy-partition} halts, and every run produces a coalition-proof PBE partition, so a coalition-proof PBE exists.
@@ -514,9 +525,131 @@ Either strict betweenness or genericity rules this configuration out: under B$^*
 
 \Cref{thm:two} left open plain betweenness without genericity, where the argument is more delicate. The equality case of \cref{lem:btw-merging} can now occur, so the choice among payoff-maximal coalitions matters: removing one may leave a strictly better coalition in the residual game, which raises the residual maximum and stalls the greedy recursion. To rule this out, at each step we remove a payoff-maximal coalition whose induced prior is largest under a suitable ranking of the level set $\{v=y\}$ to which it belongs; the ranking is built so that a rise in the residual maximum would expose a higher-ranked payoff-maximal coalition one step earlier, contradicting the selection. The construction of this ordering (\cref{lem:btw-order}) and the full argument are deferred to the appendix.
 
-\begin{theorem}\label{thm:two-B}
+\begin{theorem}\label{thm:two-B}\ \leanproved{BetweennessOrder.lean::two\_B\_existence}
     Assume B. Then a coalition-proof PBE exists.
 \end{theorem}
+
+\subsection{Thin-B correspondences}\label{sec:existence-thinB}
+
+The single-valued result extends to a class of interval-valued payoff correspondences generated by possibly discontinuous betweenness payoffs. Let $v:\Delta\Theta\to\mathbb{R}$ satisfy the inequalities in \cref{dfn:B}, but do not assume that $v$ is continuous. For $\mu\in\Delta\Theta$, let
+\[
+    L_v(\mu)
+    :=
+    \bigl\{
+        w\in\mathbb{R}
+        \sep
+        \exists\,(\mu_n)_{n\in\mathbb{N}}\subseteq\Delta\Theta,\
+        \mu_n\to\mu
+        \text{ and }
+        v(\mu_n)\to w
+    \bigr\}
+\]
+be the set of subsequential limit values of $v$ at $\mu$. The constant sequence at $\mu$ shows that $v(\mu)\in L_v(\mu)$.
+
+\begin{definition}\label{dfn:thinB}\ \leanpending{ThinB.lean::clusterValues,\ thinB;\ ThinBExistence.lean::DisclosureGame.IsThinB}
+    The \emph{thin-B correspondence generated by $v$} is
+    \[
+        V(\mu):=\operatorname{Conv}L_v(\mu),
+    \]
+    where $\operatorname{Conv}$ denotes the convex hull in $\mathbb{R}$. A correspondence is \emph{thin-B} if it is generated in this way by some $v$ satisfying B.
+\end{definition}
+
+The adjective ``thin'' refers to the primitive graph before convexification: away from discontinuities the correspondence is the singleton $\{v(\mu)\}$, while at a discontinuity it contains precisely the interval spanned by limit values. The following result verifies that this construction is compatible with the standing model.
+
+\begin{lemma}\label{lem:thinB-A4}\ \leanpending{ThinB.lean::thinB\_A4}
+    Every thin-B correspondence satisfies \cref{A4:V-uhc}: it is upper hemicontinuous with non-empty compact interval values.
+\end{lemma}
+
+Write
+\[
+    \overline v(\mu):=\max V(\mu),
+    \qquad
+    \underline v(\mu):=\min V(\mu).
+\]
+Equivalently, $\overline v(\mu)=\max L_v(\mu)$ and $\underline v(\mu)=\min L_v(\mu)$. Thus $\overline v$ is the upper-semicontinuous hull of the generating function $v$, and $\underline v$ is its lower-semicontinuous hull.
+
+\begin{lemma}\label{lem:thinB-envelope-B}\ \leanpending{ThinB.lean::thinBUpper\_isBetweenness,\ thinBLower\_isBetweenness}
+    If $v$ satisfies B, then both $\overline v$ and $\underline v$ satisfy B.
+\end{lemma}
+
+The next proposition is the key property that distinguishes thin-B from an arbitrary interval-valued correspondence. If several beliefs share a feasible payoff, the value at every strict mixture of those beliefs is exactly the intersection of their values.
+
+\begin{proposition}\label{prop:thinB-common-value}\ \leanpending{ThinB.lean::thinB\_common\_value}
+    Let $I$ be a finite non-empty set, let $\mu_i\in\Delta\Theta$ and $\lambda_i>0$ for every $i\in I$, and suppose $\sum_{i\in I}\lambda_i=1$. Define
+    \[
+        \mu:=\sum_{i\in I}\lambda_i\mu_i.
+    \]
+    If $w\in V(\mu_i)$ for every $i\in I$, then
+    \[
+        V(\mu)=\bigcap_{i\in I}V(\mu_i).
+    \]
+\end{proposition}
+
+\begin{lemma}\label{lem:thinB-value-set}\ \leanpending{ThinBExistence.lean::thinB\_coalition\_payoff\_set}
+    Suppose $V$ is thin-B. Let $R\subseteq\Theta$ be non-empty and let $(C,\sigma,w)$ be a coalition of $G\vert_R$. Then
+    \[
+        \bigl\{\widetilde w\in\mathbb{R}
+        \sep
+        (C,\sigma,\widetilde w)\text{ is a coalition of }G\vert_R
+        \bigr\}
+        =
+        V(\mu^0_C).
+    \]
+    In particular, $w\in V(\mu^0_C)$ and $w\leq\overline v(\mu^0_C)$.
+\end{lemma}
+
+The equality in \cref{lem:thinB-value-set} is stronger than the corresponding single-valued identity \cref{lem:value-id}. It permits any coalition strategy to be repaid at every point of the interval $V(\mu^0_C)$. This flexibility lets us normalize genuine PBE partitions without replacing the correspondence $V$ by the generally invalid single-valued selection $\{\overline v\}$.
+
+\begin{proposition}\label{prop:thinB-upper-pbe}\ \leanpending{ThinBExistence.lean::IsThinB.hasCommonValueIntersections,\ exists\_upperNormalizedPBE}
+    Every disclosure game obtained by restricting a thin-B correspondence to a non-empty face of $\Delta\Theta$, and possibly deleting messages while leaving every type with a non-empty message set, admits a PBE partition
+    \[
+        \{(C_t,\sigma_t,w_t)\}_{t=1}^T
+    \]
+    such that
+    \[
+        w_1>\cdots>w_T
+        \qquad\text{and}\qquad
+        w_t=\overline v(\mu^0_{C_t})
+        \quad\text{for every }t.
+    \]
+\end{proposition}
+
+For every non-empty $R\subseteq\Theta$, define
+\begin{equation}\label{eq:thinB-vstar}
+    \overline v^*(R)
+    :=
+    \max_{\varnothing\ne X\subseteq\Msg_R}
+    \overline v\bigl(\mu^0_{M^{-1}_R(X)}\bigr).
+\end{equation}
+The maximum exists because $\Msg_R$ is finite, and every relative preimage in the maximum is non-empty.
+
+\begin{lemma}\label{lem:thinB-attained}\ \leanpending{ThinBExistence.lean::thinB\_attained}
+    If $V$ is thin-B, then, for every non-empty $R\subseteq\Theta$,
+    \[
+        \max\W_R=\overline v^*(R).
+    \]
+\end{lemma}
+
+\begin{lemma}\label{lem:thinB-merging}\ \leanpending{ThinBExistence.lean::thinB\_merging}
+    Suppose $V$ is thin-B. Let $R\subseteq\Theta$ be non-empty, let $(C,\sigma,w)$ be a coalition of $G\vert_R$ with $w=\max\W_R$, and suppose $R':=R\smallsetminus C$ is non-empty and $G\vert_{R'}$ admits a coalition $(C',\sigma',w')$ with $w'>w$. Then
+    \[
+        M^{-1}_R\bigl(X(\sigma)\cup X(\sigma')\bigr)
+        =
+        C\cup C'
+        \qquad\text{and}\qquad
+        \overline v(\mu^0_{C\cup C'})=w.
+    \]
+\end{lemma}
+
+\begin{theorem}\label{thm:thinB-cppbe}\ \leanpending{ThinBExistence.lean::thinB\_existence\_of\_continuousUpper}
+    If $V$ is thin-B and its upper envelope $\overline v$ is continuous, then $G$ admits a coalition-proof PBE.
+\end{theorem}
+
+\begin{conjecture}\label{conj:thinB-cppbe}\ \leanpending{ThinBExistence.lean::thinB\_existence}
+    Every game with a thin-B payoff correspondence admits a coalition-proof PBE.
+\end{conjecture}
+
+\Cref{thm:two-B,thm:thinB-cppbe} give, respectively, the single-valued result and the thin-B result under a continuous upper envelope. Under single-valued B, $V=\{v\}$ and continuity follows from \cref{A4:V-uhc}; under thin-B, the generator may be discontinuous and $V$ records its limiting values. The argument does not establish \cref{conj:thinB-cppbe}. In particular, it cannot simply apply the single-valued theorem to $\overline v$: although $\overline v$ satisfies B, it is generally only upper semicontinuous, and the singleton correspondence $\{\overline v\}$ need not satisfy \cref{A4:V-uhc}. More specifically, the proof of the level-set order in \cref{lem:btw-order} uses continuity in its two-sided separation case. Upper semicontinuity is insufficient: on the unit interval, the B function $v(x)=0$ for $x<1$ and $v(1)=1$ is already its own upper-semicontinuous envelope, and level-$0$ points converge to the level-$1$ endpoint. Thus a proof of \cref{conj:thinB-cppbe} requires either a level-set ranking theorem adapted to this boundary-jump geometry or a different selection argument. The normalization result \cref{prop:thinB-upper-pbe} supplies the correspondence-specific part of either route.
 
 \clearpage
 \printbibliography
@@ -527,6 +660,7 @@ Either strict betweenness or genericity rules this configuration out: under B$^*
 \numberwithin{proposition}{section}
 \numberwithin{lemma}{section}
 \numberwithin{corollary}{section}
+\numberwithin{conjecture}{section}
 \numberwithin{definition}{section}
 \numberwithin{remark}{section}
 
@@ -650,7 +784,7 @@ Call a sequence $\{(C_s,\sigma_s,w_s)\}_{s=1}^{t-1}$ (possibly empty) a \emph{pr
 
 For $m\in\Msg$, let $F(m):=\{\theta\in\Theta\sep M(\theta)=\{m\}\}$ be the set of types \emph{forced} to send $m$.
 
-\begin{lemma}\label{lem:remaining-games}
+\begin{lemma}\label{lem:remaining-games}\ \leanproved{COE.lean::forced\_subset\_thetaStep,\ condPrior\_inter\_mem\_feasibleBeliefs,\ isGreatest\_stepMax}
     Let $R_t$ be the residual of a prefix. Then:
     \begin{enumerate}
         \item[(i)] for every $m\in\Msg_t$, every type forced to send $m$ remains: $F(m)\subseteq R_t$;
@@ -673,7 +807,7 @@ For $m\in\Msg$, let $F(m):=\{\theta\in\Theta\sep M(\theta)=\{m\}\}$ be the set o
     Taking the maximum over $m\in M(\theta)$ gives $\max\W_t\geq\underline{u}(\theta)$, and then the maximum over $\theta\in R_t$.
 \end{proof}
 
-\begin{definition}\label{dfn:coe}
+\begin{definition}\label{dfn:coe}\ \leanproved{COE.lean::Partition.IsCOE}
     A partition $\Pi=\{(C_t,\sigma_t,w_t)\}_{t=1}^T$ of $G$ is a \emph{coalition-optimal equilibrium} (COE) partition if, for every $t$ (with $w_0:=\infty$),
     \[
         w_t=\max\W_t
@@ -684,7 +818,7 @@ For $m\in\Msg$, let $F(m):=\{\theta\in\Theta\sep M(\theta)=\{m\}\}$ be the set o
 
 The maximum exists by \cref{lem:remaining-games}(iii). Unlike the greedy selection, a COE partition maximizes the payoff with no upper constraint and then requires the resulting sequence to be non-increasing.
 
-\begin{lemma}\label{lem:coe-greedy}
+\begin{lemma}\label{lem:coe-greedy}\ \leanproved{COE.lean::IsCOE.isGreedy,\ isCOE\_iff\_of\_greedy}
     \begin{enumerate}
         \item[(i)] Every COE partition of $G$ is a greedy partition, hence a coalition-proof PBE partition.
         \item[(ii)] A greedy partition of $G$ is a COE partition if and only if $\max\W_t\leq w_{t-1}$ for every $t$.
@@ -808,7 +942,7 @@ so genericity gives $C_t=C'_t$. Hence $R_{t+1}=R'_{t+1}$, and the induction cont
 
 The proof of \cref{thm:two-B} rests on the following ordering of each level set of $v$.
 
-\begin{lemma}\label{lem:btw-order}
+\begin{lemma}\label{lem:btw-order}\ \leanproved{BetweennessOrder.lean::btw\_order}
     Assume B and fix $y\in\mathbb{R}$. Write $L:=\{\mu\in\Delta\Theta\sep v(\mu)=y\}$, $L^{++}:=\{v>y\}$, and $L^{--}:=\{v<y\}$. There is a complete and transitive relation $\succeq$ on $L$ such that:
     \begin{enumerate}
         \item[(i)] If $x\in L$, $u\in L^{++}$, $\alpha\in(0,1)$, and $z:=\alpha x+(1-\alpha)u\in L$, then $z\succ x$.
@@ -973,9 +1107,408 @@ But $(\widetilde C_1,\widetilde\sigma_1,y)$ is a coalition of $G_s$ attaining $\
 Hence $w_t\leq w_{t-1}$ at every step. The constructed partition is a COE partition (\cref{dfn:coe}), so by \cref{lem:coe-greedy}(i) it is greedy. By \cref{prop:cppbe-characterization}, it is a coalition-proof PBE partition. Therefore a coalition-proof PBE exists.
 \qed
 
+\section{Proofs for \cref{sec:existence-thinB}}
+
+\subsection*{Proof of \cref{lem:thinB-A4}}
+Let $v:\Delta\Theta\to\mathbb{R}$ satisfy B and let $V$ be the thin-B correspondence it generates.
+
+\emph{Step 1: a uniform bound.} We first record the finite-mixture form of B. Let $I$ be a finite non-empty set, let $\mu_i\in\Delta\Theta$ and $\lambda_i\geq0$ for every $i\in I$, and suppose $\sum_{i\in I}\lambda_i=1$. Then
+\begin{equation}\label{eq:finite-B}
+    \min_{i\in I:\lambda_i>0}v(\mu_i)
+    \leq
+    v\left(\sum_{i\in I}\lambda_i\mu_i\right)
+    \leq
+    \max_{i\in I:\lambda_i>0}v(\mu_i).
+\end{equation}
+Indeed, discard the zero-weight terms and argue by induction on the number of remaining terms. The one-term case is immediate. With at least two terms, choose one term with weight $\lambda\in(0,1)$, normalize the remaining weights to obtain a belief $\mu'$, apply the induction hypothesis to $\mu'$, and then apply B to $\lambda\mu_i+(1-\lambda)\mu'$.
+
+Every $\mu\in\Delta\Theta$ satisfies $\mu=\sum_{\theta\in\Theta}\mu(\theta)\delta_\theta$. Since $\Theta$ is finite and non-empty, \eqref{eq:finite-B} gives
+\[
+    a:=\min_{\theta\in\Theta}v(\delta_\theta)
+    \leq v(\mu)\leq
+    \max_{\theta\in\Theta}v(\delta_\theta)=:b
+    \qquad\text{for every }\mu\in\Delta\Theta.
+\]
+Thus $v(\Delta\Theta)\subseteq[a,b]$, and consequently $L_v(\mu)\subseteq[a,b]$ for every $\mu\in\Delta\Theta$.
+
+\emph{Step 2: the graph of cluster values is compact.} Define
+\[
+    \Gamma_v:=\{(\mu,w)\in\Delta\Theta\times\mathbb{R}\sep w\in L_v(\mu)\}.
+\]
+Every section $L_v(\mu)$ is non-empty because it contains $v(\mu)$. We show that $\Gamma_v$ is closed. Let $(\mu_k,w_k)\in\Gamma_v$ converge to $(\mu,w)$. For every $k\in\mathbb{N}$, choose $\nu_k\in\Delta\Theta$ such that
+\[
+    \lVert\nu_k-\mu_k\rVert<\frac{1}{k+1}
+    \qquad\text{and}\qquad
+    \lvert v(\nu_k)-w_k\rvert<\frac{1}{k+1}.
+\]
+Then $\nu_k\to\mu$ and $v(\nu_k)\to w$, so $w\in L_v(\mu)$. Hence $\Gamma_v$ is closed. Since $\Gamma_v\subseteq\Delta\Theta\times[a,b]$, it is compact, and every $L_v(\mu)$ is a non-empty compact subset of $[a,b]$.
+
+Define
+\[
+    \underline v(\mu):=\min L_v(\mu),
+    \qquad
+    \overline v(\mu):=\max L_v(\mu).
+\]
+The convex hull of a non-empty compact subset of $\mathbb{R}$ is the interval between its minimum and maximum. Therefore
+\begin{equation}\label{eq:thinB-interval}
+    V(\mu)
+    =
+    [\underline v(\mu),\overline v(\mu)].
+\end{equation}
+
+\emph{Step 3: semicontinuity of the envelopes.} Let $\mu_k\to\mu$. Choose a subsequence such that
+\[
+    \overline v(\mu_{k_j})\to\limsup_{k\to\infty}\overline v(\mu_k).
+\]
+Because $(\mu_{k_j},\overline v(\mu_{k_j}))\in\Gamma_v$ and $\Gamma_v$ is closed,
+\[
+    \limsup_k\overline v(\mu_k)\in L_v(\mu),
+\]
+and hence
+\[
+    \limsup_k\overline v(\mu_k)\leq\overline v(\mu).
+\]
+Thus $\overline v$ is upper semicontinuous. The symmetric argument gives
+\[
+    \underline v(\mu)\leq\liminf_k\underline v(\mu_k),
+\]
+so $\underline v$ is lower semicontinuous.
+
+\emph{Step 4: upper hemicontinuity.} Fix $\mu\in\Delta\Theta$ and an open set $U\subseteq\mathbb{R}$ with $V(\mu)\subseteq U$. Compactness of the interval in \eqref{eq:thinB-interval} gives $\varepsilon>0$ such that
+\[
+    [\underline v(\mu)-\varepsilon,\overline v(\mu)+\varepsilon]\subseteq U.
+\]
+Upper semicontinuity of $\overline v$ and lower semicontinuity of $\underline v$ give a neighbourhood $W$ of $\mu$ such that, for every $\mu'\in W$,
+\[
+    \underline v(\mu)-\varepsilon
+    <
+    \underline v(\mu')
+    \leq
+    \overline v(\mu')
+    <
+    \overline v(\mu)+\varepsilon.
+\]
+Thus $V(\mu')\subseteq U$ for every $\mu'\in W$. Therefore $V$ is upper hemicontinuous and has non-empty compact interval values. \qed
+
+\subsection*{Proof of \cref{lem:thinB-envelope-B}}
+We first prove the claim for $\overline v$. Betweenness of $v$ implies that every strict sublevel set $\{v<c\}$ and every strict superlevel set $\{v>c\}$ is convex.
+
+For every $c\in\mathbb{R}$,
+\begin{align}
+    \{\overline v\leq c\}
+    &=
+    \bigcap_{\varepsilon>0}
+    \operatorname{int}_{\Delta\Theta}\{v<c+\varepsilon\},
+    \label{eq:upper-envelope-sublevel}\\
+    \{\overline v\geq c\}
+    &=
+    \bigcap_{\varepsilon>0}
+    \operatorname{cl}_{\Delta\Theta}\{v>c-\varepsilon\}.
+    \label{eq:upper-envelope-superlevel}
+\end{align}
+Here interiors and closures are relative to $\Delta\Theta$.
+
+For the first identity, suppose $\overline v(\mu)\leq c$. If $\mu\notin\operatorname{int}_{\Delta\Theta}\{v<c+\varepsilon\}$ for some $\varepsilon>0$, there are $\nu_n\to\mu$ with $v(\nu_n)\geq c+\varepsilon$. Boundedness gives a subsequence whose values converge to some $w\geq c+\varepsilon$, so $w\in L_v(\mu)$, contradicting $\overline v(\mu)\leq c$. Conversely, if $\mu$ belongs to the right-hand side and $w\in L_v(\mu)$ is witnessed by $\nu_n\to\mu$, then eventually $v(\nu_n)<c+\varepsilon$ for every $\varepsilon>0$. Hence $w\leq c$, and therefore $\overline v(\mu)\leq c$.
+
+For the second identity, if $\overline v(\mu)\geq c$, a sequence witnessing the cluster value $\overline v(\mu)$ meets every neighbourhood of $\mu$ in $\{v>c-\varepsilon\}$. Conversely, if $\mu$ belongs to the right-hand side, choose $\nu_n\to\mu$ with $v(\nu_n)>c-1/(n+1)$. A convergent subsequence of the bounded values has a limit $w\geq c$ in $L_v(\mu)$, so $\overline v(\mu)\geq c$.
+
+Relative interiors and closures of convex sets are convex, as are arbitrary intersections. The two identities therefore imply that every weak sublevel and superlevel set of $\overline v$ is convex. Hence $\overline v$ is quasiconvex and quasiconcave, so it satisfies B.
+
+For the lower envelope, let $u:=-v$. Then $u$ satisfies B and
+\[
+    L_u(\mu)=\{-w\sep w\in L_v(\mu)\}.
+\]
+The upper envelope of $u$ is therefore $-\underline v$. Applying the result just proved and negating the inequalities shows that $\underline v$ satisfies B. \qed
+
+\subsection*{Proof of \cref{prop:thinB-common-value}}
+We use the following elementary convex-set fact. If $K\subseteq\Delta\Theta$ is convex, every $\mu_i$ belongs to $\operatorname{cl}_{\Delta\Theta}K$, at least one $\mu_i$ belongs to $\operatorname{int}_{\Delta\Theta}K$, and all weights in a convex combination of the $\mu_i$ are positive, then that convex combination belongs to $\operatorname{int}_{\Delta\Theta}K$.
+
+Set
+\[
+    \ell_*:=\max_{i\in I}\underline v(\mu_i),
+    \qquad
+    r_*:=\min_{i\in I}\overline v(\mu_i).
+\]
+Because $w\in V(\mu_i)$ for every $i$,
+\[
+    \bigcap_{i\in I}V(\mu_i)=[\ell_*,r_*].
+\]
+By \cref{lem:thinB-envelope-B} and the finite-mixture form of B,
+\[
+    \underline v(\mu)\leq\ell_*
+    \qquad\text{and}\qquad
+    r_*\leq\overline v(\mu).
+\]
+Thus $[\ell_*,r_*]\subseteq V(\mu)$. It remains to prove equality at the two endpoints.
+
+Suppose $\overline v(\mu)>r_*$, choose $c$ with $r_*<c<\overline v(\mu)$, and choose $i_0$ with $\overline v(\mu_{i_0})=r_*$. Let $K:=\{v<c\}$, which is convex. Since $\underline v(\mu_i)\leq w\leq r_*<c$, a sequence witnessing $\underline v(\mu_i)$ shows that every $\mu_i\in\operatorname{cl}_{\Delta\Theta}K$. Moreover, $\mu_{i_0}\in\operatorname{int}_{\Delta\Theta}K$: otherwise there are $\nu_n\to\mu_{i_0}$ with $v(\nu_n)\geq c$, and a convergent subsequence of their bounded values yields a member of $L_v(\mu_{i_0})$ weakly above $c>\overline v(\mu_{i_0})$, a contradiction. The convex-set fact gives $\mu\in\operatorname{int}_{\Delta\Theta}K$. Every sequence converging to $\mu$ is eventually in $K$, so every cluster value at $\mu$ is at most $c$, contradicting $\overline v(\mu)>c$. Therefore $\overline v(\mu)=r_*$.
+
+The lower endpoint is symmetric. If $\underline v(\mu)<\ell_*$, choose $\underline v(\mu)<c<\ell_*$ and $i_1$ with $\underline v(\mu_{i_1})=\ell_*$. The convex set $H:=\{v>c\}$ has every $\mu_i$ in its closure because $\overline v(\mu_i)\geq w\geq\ell_*>c$, and $\mu_{i_1}$ lies in its interior; otherwise a sequence outside $H$ would produce a cluster value at most $c<\underline v(\mu_{i_1})$. Hence $\mu\in\operatorname{int}_{\Delta\Theta}H$, so every cluster value at $\mu$ is at least $c$, contradicting $\underline v(\mu)<c$. Thus $\underline v(\mu)=\ell_*$, and
+\[
+    V(\mu)
+    =
+    [\ell_*,r_*]
+    =
+    \bigcap_{i\in I}V(\mu_i).
+\]
+\qed
+
+\subsection*{Proof of \cref{lem:thinB-value-set}}
+Bayes plausibility in $G\vert_C$ gives
+\[
+    \mu^0_C
+    =
+    \sum_{m\in X(\sigma)}
+    p_\sigma(m)\,\mu_\sigma(\cdot\sep m),
+\]
+where the weights are positive and sum to one. Condition \cref{C4} gives
+\[
+    w\in V(\mu_\sigma(\cdot\sep m))
+    \qquad\text{for every }m\in X(\sigma).
+\]
+By \cref{prop:thinB-common-value},
+\[
+    V(\mu^0_C)
+    =
+    \bigcap_{m\in X(\sigma)}
+    V(\mu_\sigma(\cdot\sep m)).
+\]
+Conditions \cref{C1}--\cref{C3} do not depend on the coalition payoff, while \cref{C4} holds for $\widetilde w$ exactly when $\widetilde w$ belongs to the intersection on the right. This proves the equality. \qed
+
+\subsection*{Proof of \cref{prop:thinB-upper-pbe}}
+Fix such a game. By \cref{lem:pbe-existence,prop:pbe-characterization}, it has an individually rational PBE partition with strictly decreasing payoffs. The proof of \cref{lem:thinB-value-set} depends only on Bayes plausibility and \cref{prop:thinB-common-value}, so it applies unchanged to this game and its residual games.
+
+Normalize the cells from first to last. Raise the first-cell payoff to $\overline v(\mu^0_{C_1})$. This is feasible for the same coalition strategy by \cref{lem:thinB-value-set}, preserves individual rationality, and preserves the payoff order.
+
+Inductively, suppose the processed cells form a strictly decreasing normalized prefix, and the next cell is $(C,\sigma,w)$. Let $p$ be the payoff of the last processed cell and let $r:=\overline v(\mu^0_C)$. The original strict payoff order and the fact that processed payoffs only increase give $w<p$.
+
+If $r<p$, replace $w$ by $r$. This is feasible, and $r\geq w$, so individual rationality and the strict payoff order are preserved.
+
+Suppose instead that $r\geq p$. Since
+\[
+    \underline v(\mu^0_C)\leq w<p\leq r=\overline v(\mu^0_C),
+\]
+\cref{lem:thinB-value-set} allows the current cell to be paid $p$. Give it that payoff and merge it with the preceding processed cell. The two evidence sets are disjoint because no type in the later residual set can send evidence used by the preceding cell. Let every type retain its old strategy. The posterior at each used message is unchanged, every such message pays $p$, and the preimage of the union of the evidence sets is exactly the union of the two adjacent cells. Thus the merged triple is a coalition in the residual game before the preceding cell.
+
+Both old value intervals contain $p$, the preceding interval has upper endpoint $p$, and the current interval has upper endpoint $r\geq p$. The merged prior is a strict convex combination of the two old priors, so \cref{prop:thinB-common-value} gives
+\[
+    V(\mu^0_{\mathrm{merged}})
+    =
+    V(\mu^0_{\mathrm{preceding}})
+    \cap
+    V(\mu^0_C).
+\]
+Its upper endpoint is therefore $p$, so the merged cell is normalized. Its payoff is weakly above both old payoffs, preserving individual rationality, and its removal leaves the same residual game as removing the two old cells.
+
+The finite procedure terminates with an individually rational partition having strictly decreasing payoffs and $w_t=\overline v(\mu^0_{C_t})$ at every cell. By \cref{prop:pbe-characterization}, this is a PBE partition. \qed
+
+\subsection*{Proof of \cref{lem:thinB-attained}}
+Let $(C,\sigma,w)$ be a coalition of $G\vert_R$. Exclusivity and its converse give $C=M^{-1}_R(X(\sigma))$, while \cref{lem:thinB-value-set} gives
+\[
+    w\leq\overline v(\mu^0_C)\leq\overline v^*(R).
+\]
+Hence $\max\W_R\leq\overline v^*(R)$.
+
+For the reverse inequality, let $X^*\subseteq\Msg_R$ attain \eqref{eq:thinB-vstar} and put $C^*:=M^{-1}_R(X^*)$. Consider the auxiliary game with type set $C^*$, message set $X^*$, message mapping
+\[
+    M'(\theta):=M(\theta)\cap X^*,
+\]
+prior $\mu^0_{C^*}$, and the restriction of $V$. Every type in $C^*$ has a message in $X^*$, every message in $X^*$ is available to a type in $C^*$, and the remaining assumptions are inherited, so this is a disclosure game.
+
+By \cref{prop:thinB-upper-pbe}, it has a PBE partition
+\[
+    \{(\widetilde C_\tau,\widetilde\sigma_\tau,\widetilde w_\tau)\}_{\tau=1}^k
+\]
+with
+\[
+    \widetilde w_1>\cdots>\widetilde w_k
+    \qquad\text{and}\qquad
+    \widetilde w_\tau=\overline v(\mu^0_{\widetilde C_\tau}).
+\]
+Since the cells partition $C^*$,
+\[
+    \mu^0_{C^*}
+    =
+    \sum_{\tau=1}^k
+    \frac{\mu^0(\widetilde C_\tau)}{\mu^0(C^*)}
+    \,\mu^0_{\widetilde C_\tau}.
+\]
+The finite-mixture form of B for $\overline v$ gives
+\[
+    \overline v^*(R)
+    =
+    \overline v(\mu^0_{C^*})
+    \leq
+    \max_\tau\overline v(\mu^0_{\widetilde C_\tau})
+    =
+    \widetilde w_1.
+\]
+
+The first auxiliary cell is a coalition of $G\vert_R$. Its strategy uses only messages in $X^*$ and induces the same posteriors. If a type in $R$ can send a message used by $\widetilde\sigma_1$, it belongs to $C^*$ by the definition of $C^*$, and auxiliary-game exclusivity places it in $\widetilde C_1$. Consequently
+\[
+    \widetilde w_1
+    \leq
+    \max\W_R
+    \leq
+    \overline v^*(R)
+    \leq
+    \widetilde w_1.
+\]
+All inequalities are equalities. \qed
+
+\subsection*{Proof of \cref{lem:thinB-merging}}
+Preimages distribute over unions. Exclusivity and its converse give
+\[
+    M^{-1}_R(X(\sigma))=C
+    \qquad\text{and}\qquad
+    M^{-1}_R(X(\sigma'))\smallsetminus C
+    =
+    M^{-1}_{R'}(X(\sigma'))
+    =
+    C'.
+\]
+This proves
+\[
+    M^{-1}_R\bigl(X(\sigma)\cup X(\sigma')\bigr)=C\cup C'.
+\]
+
+By \cref{lem:thinB-value-set}, the strategy $\sigma$ can be paid $\overline v(\mu^0_C)$. Maximality of $w$, together with $w\in V(\mu^0_C)$, gives
+\[
+    \overline v(\mu^0_C)=w.
+\]
+Similarly, $w'\in V(\mu^0_{C'})$ implies $\overline v(\mu^0_{C'})\geq w'>w$. Since $C$ and $C'$ are disjoint and non-empty, $\mu^0_{C\cup C'}$ is a strict convex combination of their priors. Quasiconcavity of $\overline v$ yields
+\[
+    \overline v(\mu^0_{C\cup C'})
+    \geq
+    \min\{\overline v(\mu^0_C),\overline v(\mu^0_{C'})\}
+    =
+    w.
+\]
+The first part shows that $C\cup C'$ is a relative preimage in $G\vert_R$, so \cref{lem:thinB-attained} gives
+\[
+    \overline v(\mu^0_{C\cup C'})
+    \leq
+    \overline v^*(R)
+    =
+    \max\W_R
+    =
+    w.
+\]
+Hence equality holds. \qed
+
+\subsection*{Proof of \cref{thm:thinB-cppbe}}
+By \cref{lem:thinB-A4}, $G$ satisfies the standing regularity assumption, and by \cref{lem:thinB-envelope-B} its upper envelope $\overline v$ satisfies B. By the additional hypothesis of the theorem, $\overline v$ is continuous. The geometric construction in the proof of \cref{lem:btw-order} depends only on continuity and B of the function being ranked, so it applies to every level set of $\overline v$.
+
+Construct a partition recursively. Let $R_1:=\Theta$. Given non-empty $R_t$, set
+\[
+    w_t:=\max\W_{R_t}.
+\]
+The maximum exists by \cref{lem:coalition-compact}. If $(C,\sigma,w_t)$ attains it, \cref{lem:thinB-value-set} allows the same strategy to be paid $\overline v(\mu^0_C)$. Maximality and $w_t\leq\overline v(\mu^0_C)$ imply
+\[
+    \overline v(\mu^0_C)=w_t.
+\]
+Thus all payoff-maximal coalition priors lie in $\{\overline v=w_t\}$. Among them choose $(C_t,\sigma_t,w_t)$ whose prior is maximal under the complete and transitive relation from \cref{lem:btw-order}, and let $R_{t+1}:=R_t\smallsetminus C_t$. This choice exists because only finitely many type priors can arise. The recursion terminates and returns a partition $\Pi$ with $w_t=\max\W_{R_t}$ at every step.
+
+Suppose, toward a contradiction, that $w_{s+1}>w_s$ for some $s$. Write
+\[
+    y:=w_s,\qquad
+    L:=\{\overline v=y\},\qquad
+    L^{++}:=\{\overline v>y\},\qquad
+    L^{--}:=\{\overline v<y\}.
+\]
+Then
+\[
+    \mu^0_{C_s}\in L
+    \qquad\text{and}\qquad
+    \mu^0_{C_{s+1}}\in L^{++}.
+\]
+Apply \cref{lem:thinB-merging} in $G\vert_{R_s}$ and set $D:=C_s\cup C_{s+1}$. It gives
+\[
+    D=M^{-1}_{R_s}\bigl(X(\sigma_s)\cup X(\sigma_{s+1})\bigr)
+    \qquad\text{and}\qquad
+    \overline v(\mu^0_D)=y.
+\]
+Moreover,
+\[
+    \mu^0_D
+    =
+    \alpha\mu^0_{C_s}+(1-\alpha)\mu^0_{C_{s+1}},
+    \qquad
+    \alpha:=\frac{\mu^0(C_s)}{\mu^0(D)}\in(0,1).
+\]
+Property~(i) of \cref{lem:btw-order} gives
+\begin{equation}\label{eq:thinB-rank-up}
+    \mu^0_D\succ\mu^0_{C_s}.
+\end{equation}
+
+Form the auxiliary game
+\[
+    G'
+    :=
+    \Bigl(
+    D,\,
+    X(\sigma_s)\cup X(\sigma_{s+1}),\,
+    \theta\mapsto M(\theta)\cap
+    \bigl(X(\sigma_s)\cup X(\sigma_{s+1})\bigr),\,
+    \mu^0_D,\,
+    V\vert_{\Delta D}
+    \Bigr).
+\]
+It is a disclosure game. The relative-preimage identity says that every type in $D$ has an auxiliary message, and every auxiliary message is used by one of the two original coalitions and hence is available to a type in $D$.
+
+By \cref{prop:thinB-upper-pbe}, $G'$ has a PBE partition
+\[
+    \{(\widetilde C_\tau,\widetilde\sigma_\tau,\widetilde w_\tau)\}_{\tau=1}^k
+\]
+such that
+\[
+    \widetilde w_1>\cdots>\widetilde w_k
+    \qquad\text{and}\qquad
+    \widetilde w_\tau=\overline v(\mu^0_{\widetilde C_\tau}).
+\]
+The cells partition $D$, so
+\[
+    \mu^0_D
+    =
+    \sum_{\tau=1}^k
+    \beta_\tau\mu^0_{\widetilde C_\tau},
+    \qquad
+    \beta_\tau:=\frac{\mu^0(\widetilde C_\tau)}{\mu^0(D)}>0,
+    \qquad
+    \sum_{\tau=1}^k\beta_\tau=1.
+\]
+
+The first auxiliary cell is a coalition of $G\vert_{R_s}$. If a type in $R_s$ can send one of its messages, the relative-preimage identity places the type in $D$, and auxiliary-game exclusivity then places it in $\widetilde C_1$. Hence
+\[
+    \widetilde w_1\leq\max\W_{R_s}=y.
+\]
+Quasiconvexity of $\overline v$ gives the reverse inequality:
+\[
+    y
+    =
+    \overline v(\mu^0_D)
+    \leq
+    \max_\tau\overline v(\mu^0_{\widetilde C_\tau})
+    =
+    \widetilde w_1.
+\]
+Therefore $\widetilde w_1=y$, while strict decrease gives $\widetilde w_\tau<y$ for $\tau\geq2$. Thus the first auxiliary prior lies in $L$ and every later one lies in $L^{--}$.
+
+Property~(ii) of \cref{lem:btw-order}, applied to the decomposition of $\mu^0_D$, gives a component on $L$ weakly above $\mu^0_D$. The first cell is the only component on $L$, so
+\[
+    \mu^0_{\widetilde C_1}
+    \succeq
+    \mu^0_D
+    \succ
+    \mu^0_{C_s},
+\]
+where the strict comparison is \eqref{eq:thinB-rank-up}. But $(\widetilde C_1,\widetilde\sigma_1,y)$ is a coalition of $G\vert_{R_s}$ attaining $\max\W_{R_s}$, contradicting the rank-maximal choice of $(C_s,\sigma_s,w_s)$.
+
+Hence $w_t\leq w_{t-1}$ at every step. The partition $\Pi$ is COE, so \cref{lem:coe-greedy,prop:cppbe-characterization} imply that it is a coalition-proof PBE partition. \qed
+
 \section{Technical Lemmas (for online publication)}\label{sec:technical}
 
-\begin{lemma}\label{lem:restriction}
+\begin{lemma}\label{lem:restriction}\ \leanproved{Restriction.lean::restrict\_self,\ restrict\_restrict}
     For every disclosure game $G$ and non-empty $R\subseteq\Theta$, the restricted game $G\vert_R$ is itself a disclosure game, and $G\vert_\Theta=G$. Moreover, restriction is transitive: for non-empty $R'\subseteq R\subseteq\Theta$,
     \[
         (G\vert_R)\vert_{R'}=G\vert_{R'}.
@@ -993,7 +1526,7 @@ Hence $w_t\leq w_{t-1}$ at every step. The constructed partition is a COE partit
 
 Fix a disclosure game $G=(\Theta,\Msg,M,\mu^0,V)$ and a message $m\in\Msg$. Recall that $P(m)=M^{-1}(\{m\})$ is the set of types that can send $m$, and let $F(m):=\{\theta\in\Theta\sep M(\theta)=\{m\}\}$ be the set of types \emph{forced} to send $m$; note that $F(m)\subseteq P(m)$.
 
-\begin{lemma}\label{lem:feasible-polytope}
+\begin{lemma}\label{lem:feasible-polytope}\ \leanproved{Feasible.lean::feasibleBeliefs\_eq\_polytope}
     The set of feasible beliefs $\mathcal{F}(m)$ is the set of all $\mu\in\Delta\Theta$ such that
     \begin{enumerate}
         \item[(i)] $\mu(\theta)=0$ for every $\theta\notin P(m)$;
@@ -1035,7 +1568,7 @@ Fix a disclosure game $G=(\Theta,\Msg,M,\mu^0,V)$ and a message $m\in\Msg$. Reca
     \emph{Conclusion.} Taking the strategy under which every type in $P$ sends $m$ gives $\mu^0_{P(m)}\in\mathcal{F}(m)$, so $\mathcal{F}(m)$ is non-empty. Conditions (i)--(iii) are finitely many linear equalities and weak inequalities, so they cut the simplex $\Delta\Theta$ down to a bounded polyhedron. Hence $\mathcal{F}(m)$ is a non-empty compact convex polytope.
 \end{proof}
 
-\begin{lemma}\label{lem:pbe-existence}
+\begin{lemma}\label{lem:pbe-existence}\ \leanaxiom{PBEExistence.lean::exists\_PBE}
     Every disclosure game admits a PBE.
 \end{lemma}
 \begin{proof}

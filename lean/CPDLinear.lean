@@ -24,3 +24,5 @@ import CPDLinear.BetweennessRank
 import CPDLinear.BetweennessOrder
 import CPDLinear.Theorem2
 import CPDLinear.ThinB
+import CPDLinear.ThinBExistence
+import CPDLinear.BetweennessPending
