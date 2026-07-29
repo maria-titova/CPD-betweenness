@@ -64,6 +64,7 @@
 \newcommand{\leanproved}{{\footnotesize\textsf{\textcolor{green!55!black}{[Lean\,\checkmark\ proved]}}}}
 \newcommand{\leanaxiom}{{\footnotesize\textsf{\textcolor{blue!65!black}{[Lean\,\checkmark\ proved, mod.\ Kakutani]}}}}
 \newcommand{\arileanpending}{{\footnotesize\textsf{\textcolor{orange!80!black}{[Lean: Ari pending]}}}}
+\newcommand{\leanpending}{{\footnotesize\textsf{\textcolor{gray}{[Lean: pending]}}}}
 \newcommand{\leanfailed}{{\footnotesize\textsf{\textcolor{red!70!black}{[Lean: failed]}}}}
 
 %% bibliography using biber / biblatex
@@ -239,6 +240,104 @@ approaching $\mu$. The constant sequence $\mu_n\equiv\mu$ shows $v(\mu)\in L_v(\
 
     Steps 2 and 4 give, respectively, non-empty compact interval values and
     upper hemicontinuity, so $V$ satisfies \cref{A4:V-uhc}.
+\end{proof}
+
+\section*{Existence of coalition-proof PBE under thin-B}
+
+Fix a betweenness payoff $v$, let $V$ be the thin-B correspondence it generates,
+and consider the disclosure game $G:=(\Theta,\Msg,M,\mu^0,V)$, which is a
+disclosure game because $V$ satisfies \cref{A4:V-uhc} (\cref{lem:thinB-A4}). Its
+payoff envelopes are $\overline v(\mu):=\max V(\mu)$ and
+$\underline v(\mu):=\min V(\mu)$; by $(\dagger)$ in the proof of
+\cref{lem:thinB-A4}, $\overline v=\max L_v$ and $\underline v=\min L_v$, so
+$\overline v$ is the upper semicontinuous hull of $v$ (the least u.s.c.\ function
+$\ge v$) and $\underline v$ its lower semicontinuous hull.
+
+\begin{lemma}\label{lem:thinB-envelope-B}\ \arileanpending
+    If $v$ satisfies B, then both envelopes $\overline v$ and $\underline v$ of
+    its thin-B correspondence satisfy B.
+\end{lemma}
+\begin{proof}
+    We prove the claim for $\overline v$; the claim for $\underline v$ follows by
+    applying it to $-v$, whose thin-B upper envelope is $-\underline v$.
+    Betweenness of $v$ makes each strict sublevel set
+    $\{v<b\}=\bigcup_{c<b}\{v\le c\}$ and each strict superlevel set
+    $\{v>b\}=\bigcup_{c>b}\{v\ge c\}$ an increasing union of convex sets, hence
+    convex. Because $\overline v=\limsup_{\nu\to\mu}v(\nu)$ is the upper
+    semicontinuous hull of $v$, for every $a\in\mathbb{R}$,
+    \[
+        \{\overline v\le a\}=\bigcap_{\varepsilon>0}\operatorname{int}\{v<a+\varepsilon\},
+        \qquad
+        \{\overline v\ge a\}=\bigcap_{\varepsilon>0}\operatorname{cl}\{v>a-\varepsilon\},
+    \]
+    interior and closure taken in $\Delta\Theta$: indeed $\overline v(\mu)\le a$
+    iff for every $\varepsilon>0$ some neighbourhood of $\mu$ keeps
+    $v<a+\varepsilon$, while $\overline v(\mu)\ge a$ iff for every $\varepsilon>0$
+    every neighbourhood of $\mu$ meets $\{v>a-\varepsilon\}$. Interiors,
+    closures, and intersections of convex sets are convex, so both
+    $\{\overline v\le a\}$ and $\{\overline v\ge a\}$ are convex for every $a$;
+    that is, $\overline v$ is quasiconvex and quasiconcave, which is B.
+\end{proof}
+
+The reduction to existence rests on one further observation: in the thin-B game
+no coalition can pay more than the pooling value of its type set under
+$\overline v$.
+
+\begin{lemma}\label{lem:thinB-value-bound}\ \leanpending
+    Let $R\subseteq\Theta$ be non-empty and $(C,\sigma,w)$ a coalition of
+    $G\vert_R$. Then $w\le\overline v(\mu^0_C)$.
+\end{lemma}
+\begin{proof}
+    In $G\vert_R$ the prior is the convex combination
+    $\mu^0_C=\sum_{m\in X(\sigma)}p_\sigma(m)\,\mu_\sigma(\cdot\sep m)$ with
+    positive weights, and the common-payoff condition~(C4) gives
+    $w\in V(\mu_\sigma(\cdot\sep m))$, hence
+    $w\le\overline v(\mu_\sigma(\cdot\sep m))$ for every on-path $m$. Since
+    $\overline v$ is quasiconcave (\cref{lem:thinB-envelope-B}),
+    \[
+        \overline v(\mu^0_C)\ \ge\ \min_{m\in X(\sigma)}\overline v(\mu_\sigma(\cdot\sep m))\ \ge\ w. \qedhere
+    \]
+\end{proof}
+
+Writing $\overline v^*(R):=\max_{\varnothing\ne X\subseteq\Msg_R}
+\overline v(\mu^0_{M^{-1}_R(X)})$ for the largest pooling value of $\overline v$
+in $G\vert_R$, \cref{lem:thinB-value-bound} gives $\max\W_R\le\overline v^*(R)$,
+exactly as in the single-valued theory.
+
+\begin{theorem}\label{thm:thinB-cppbe}\ \leanpending
+    If $V$ is thin-B, then the disclosure game $G=(\Theta,\Msg,M,\mu^0,V)$ admits
+    a coalition-proof PBE.
+\end{theorem}
+\begin{proof}
+    By \cref{lem:thinB-A4}, $G$ is a disclosure game, and by
+    \cref{lem:thinB-envelope-B} its upper envelope $\overline v$ satisfies B. We
+    run the greedy construction of the betweenness existence theorem of the main
+    text (``B $\Rightarrow$ a coalition-proof PBE exists'') on $\overline v$: at
+    each residual game $G_t$ it removes a coalition attaining the maximal
+    coalition payoff $\max\W_t$ whose induced prior is largest in the level-set
+    order of the main text (built from betweenness of $\overline v$); the
+    resulting maxima are non-increasing, giving a coalition-optimal (COE)
+    partition, which is a coalition-proof PBE partition. That argument transfers
+    once two facts are in place.
+
+    \emph{(i) $\max\W_R=\overline v^*(R)$.} The bound
+    $\max\W_R\le\overline v^*(R)$ is \cref{lem:thinB-value-bound}. For the
+    reverse, one exhibits in $G\vert_R$ a coalition paying $\overline v^*(R)$.
+    Let $X^*$ attain $\overline v^*(R)$ and $C^*:=M^{-1}_R(X^*)$. If the types of
+    $C^*$ share a message $m\in X^*$, pooling on $m$ induces the posterior
+    $\mu^0_{C^*}$, and $\overline v(\mu^0_{C^*})=\overline v^*(R)\in V(\mu^0_{C^*})$,
+    so this pooling is a coalition paying $\overline v^*(R)$. In general $C^*$
+    spreads over $X^*$, and the coalition is the top cell of a PBE of the
+    auxiliary game on $(C^*,X^*)$, exactly as in the main-text attainment lemma,
+    with the receiver's on-path selection taken to be $\overline v$. This
+    receiver-optimal selection is the sole point at which multi-valuedness enters
+    the argument.
+
+    \emph{(ii) The level-set order applies to $\overline v$.} Immediate from
+    \cref{lem:thinB-envelope-B}, since $\overline v$ satisfies B.
+
+    With (i) and (ii), the greedy construction produces a COE partition of $G$,
+    hence a coalition-proof PBE.
 \end{proof}
 
 \end{document}

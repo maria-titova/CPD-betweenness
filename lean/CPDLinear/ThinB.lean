@@ -82,4 +82,41 @@ theorem thinB_A4 (Θ : Finset T) (hΘ : Θ.Nonempty) (v : (T → ℝ) → ℝ)
       UpperHemicontinuousOn (thinB Θ v) (simplexOn Θ) := by
   sorry
 
+/-! ## Goal 2 (intermediate): the envelopes inherit betweenness
+
+The thin-B correspondence has interval values `thinB Θ v μ = [thinBLower Θ v μ,
+thinBUpper Θ v μ]`; the **upper envelope** `thinBUpper` is the u.s.c. hull of `v`
+and the **lower envelope** `thinBLower` its l.s.c. hull.  These envelopes are what
+a `DisclosureGame` built from `V = thinB Θ v` exposes as `vbar`/`vlow`, so the
+step that unlocks coalition-proof-PBE existence for the thin-B game is that the
+upper envelope again satisfies betweenness. -/
+
+/-- Upper envelope of the thin-B correspondence: `v̄(μ) = max Lᵥ(μ)`, the u.s.c.
+hull of `v`. -/
+noncomputable def thinBUpper (Θ : Finset T) (v : (T → ℝ) → ℝ) : (T → ℝ) → ℝ :=
+  fun μ => sSup (clusterValues Θ v μ)
+
+/-- Lower envelope of the thin-B correspondence: `v̲(μ) = min Lᵥ(μ)`, the l.s.c.
+hull of `v`. -/
+noncomputable def thinBLower (Θ : Finset T) (v : (T → ℝ) → ℝ) : (T → ℝ) → ℝ :=
+  fun μ => sInf (clusterValues Θ v μ)
+
+/-- **Intermediate result — upper envelope inherits betweenness.** If `v`
+satisfies betweenness on `Δ Θ`, so does its u.s.c. hull `thinBUpper Θ v`.
+Proof idea: betweenness makes every strict sub/superlevel set of `v` convex; the
+hull's level sets are `⋂_ε int {v < a+ε}` and `⋂_ε cl {v > a-ε}`, convex as
+interiors/closures/intersections of convex sets — so the hull is quasiconvex and
+quasiconcave. -/
+theorem thinBUpper_isBetweenness (Θ : Finset T) (hΘ : Θ.Nonempty)
+    (v : (T → ℝ) → ℝ) (hB : IsBetweenness Θ v) :
+    IsBetweenness Θ (thinBUpper Θ v) := by
+  sorry
+
+/-- **Intermediate result — lower envelope inherits betweenness** (symmetric to
+`thinBUpper_isBetweenness`, applied to `-v`). -/
+theorem thinBLower_isBetweenness (Θ : Finset T) (hΘ : Θ.Nonempty)
+    (v : (T → ℝ) → ℝ) (hB : IsBetweenness Θ v) :
+    IsBetweenness Θ (thinBLower Θ v) := by
+  sorry
+
 end CPDLinear
