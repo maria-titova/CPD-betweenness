@@ -61,10 +61,14 @@ Read aristotle/pipeline.md for the queue, the prompt contract and the return pro
      Commit the status.md change and push, then exit.
 
 5. BADGE THE WRITEUP. In tex/v5.tex flip that result's badge from \leanpending{...} to
-   \leanproved{...} (or \leanmixed{proved}{pending} if only part of it closed). The badge
-   macros are defined near the top of v5.tex. Keep the declaration names in the badge in
-   sync with what was actually proved. Mapping:
-     call1 -> lem:thinB-A4 (and dfn:thinB once its declarations are all proved)
+   \leanproved{...} (or \leanmixed{proved}{pending} if only part of it closed). For a
+   badge naming only DEFINITIONS, which carry no proof obligation, use
+   \leanformalized{...} instead of \leanproved{...}. The badge macros are defined near
+   the top of v5.tex. Keep the declaration names in the badge in sync with what was
+   actually proved. Only flip a badge once every declaration it names is proof-complete
+   AND free of sorryAx (a downstream lemma citing a still-sorried upstream lemma shows
+   sorryAx and is NOT yet green). Mapping:
+     call1 -> lem:thinB-A4 [done]; dfn:thinB -> \leanformalized [done]
      call8 -> lem:btw-order, whose badge is currently
               \leanmixed{BetweennessOrder.lean::btw_order}{BetweennessOrderUSC.lean::btw_order_usc}
               and becomes \leanproved{...both...}
