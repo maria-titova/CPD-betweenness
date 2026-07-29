@@ -69,7 +69,213 @@ This is the fact that makes the thin-B values compact. -/
 lemma IsBetweenness.bddOn_simplex (Θ : Finset T) (hΘ : Θ.Nonempty)
     {v : (T → ℝ) → ℝ} (hB : IsBetweenness Θ v) :
     ∃ a b : ℝ, ∀ μ ∈ simplexOn Θ, v μ ∈ Set.Icc a b := by
-  sorry
+  classical
+  -- The bounds are the min and max of v at the vertices (indicator functions)
+  let vertex_values := Θ.image (fun θ => v (fun t => if t = θ then 1 else 0))
+  have h_vv_nonempty : vertex_values.Nonempty := hΘ.image _
+  use sInf vertex_values, sSup vertex_values
+  -- Induction on |Θ|
+  induction Θ using Finset.induction_on generalizing v with
+  | empty => simp at hΘ
+  | @insert a s ha ih =>
+    by_cases hs : s.Nonempty
+    · -- s is nonempty: use induction hypothesis + betweenness
+      have h_vv_split : vertex_values =
+          insert (v (fun t => if t = a then 1 else 0))
+            (s.image (fun θ => v (fun t => if t = θ then 1 else 0))) := by
+        simp only [vertex_values, Finset.image_insert]
+      have hs_vv_nonempty : (s.image (fun θ => v (fun t => if t = θ then 1 else 0))).Nonempty :=
+        hs.image _
+      have hB_s : IsBetweenness s v := fun μ hμ μ' hμ' l hl =>
+        hB μ (simplexOn_mono (Finset.subset_insert a s) hμ)
+          μ' (simplexOn_mono (Finset.subset_insert a s) hμ') l hl
+      have hs_vv : ∀ μ ∈ simplexOn s, v μ ∈
+          Icc (sInf ↑(s.image (fun θ => v (fun t => if t = θ then 1 else 0))))
+            (sSup ↑(s.image (fun θ => v (fun t => if t = θ then 1 else 0)))) := by
+        exact ih hs hB_s hs_vv_nonempty
+      intro μ hμ
+      -- Case analysis on μ a
+      by_cases hma : μ a = 1
+      · -- μ is the vertex at a
+        have hμ_eq : μ = (fun t => if t = a then 1 else 0) := by
+          ext t
+          by_cases ht : t = a
+          · simp [ht, hma]
+          · have hsum := hμ.2.1
+            have hnonneg := hμ.1
+            have : μ t = 0 := by
+              have hμt := hnonneg t
+              by_contra hne
+              have hpos : 0 < μ t := lt_of_le_of_ne hμt (Ne.symm hne)
+              have hsum_ge : ∑ x, μ x ≥ μ t + μ a := by
+                have : ∑ x, μ x = ∑ x ∈ ({t, a} : Finset T), μ x + ∑ x ∈ (Finset.univ \ {t, a}), μ x := by
+                  rw [add_comm, Finset.sum_sdiff (Finset.subset_univ _)]
+                rw [this]
+                have h2 : ∑ x ∈ (Finset.univ \ {t, a}), μ x ≥ 0 := Finset.sum_nonneg (fun x _ => hnonneg x)
+                rw [Finset.sum_pair ht] at *
+                linarith
+              linarith
+            simp [this, ht]
+        rw [hμ_eq, h_vv_split]
+        apply Set.mem_Icc.mpr
+        exact ⟨csInf_le (Set.Finite.bddBelow (Set.toFinite _)) (Finset.mem_insert_self _ _),
+               le_csSup (Set.Finite.bddAbove (Set.toFinite _)) (Finset.mem_insert_self _ _)⟩
+      · by_cases hma' : μ a = 0
+        · -- μ ∈ simplexOn s
+          have hμ_s : μ ∈ simplexOn s := by
+            simp only [simplexOn] at hμ ⊢
+            refine ⟨hμ.1, hμ.2.1, ?_⟩
+            intro t ht
+            by_cases ht' : t = a
+            · simp [ht', hma']
+            · exact hμ.2.2 t (fun h => ht (by simp_all))
+          have hμ_in := hs_vv μ hμ_s
+          rw [h_vv_split]
+          refine ⟨?_, ?_⟩
+          · apply le_trans _ hμ_in.1
+            apply csInf_le_csInf
+            · exact Set.Finite.bddBelow (Set.toFinite _)
+            · exact hs_vv_nonempty
+            · exact Finset.subset_insert _ _
+          · apply le_trans hμ_in.2 _
+            exact csSup_le_csSup (Set.Finite.bddAbove (Set.toFinite _)) hs_vv_nonempty (Finset.subset_insert _ _)
+        · -- 0 < μ a < 1: use betweenness
+          -- First establish 0 < μ a < 1
+          have hma_pos : 0 < μ a := by
+            have := hμ.1 a
+            cases' lt_or_eq_of_le this with hlt heq
+            · exact hlt
+            · exact absurd heq.symm hma'
+          have hma_lt : μ a < 1 := by
+            have := hμ.2.1
+            contrapose! hma
+            have hge : μ a ≥ 1 := hma
+            have hsum_eq : ∑ t, μ t = 1 := hμ.2.1
+            have hnonneg := hμ.1
+            by_contra hne
+            have hpos : 0 < μ a := hma_pos
+            have hsum_ge : ∑ x, μ x ≥ μ a := by
+              have : ∑ x, μ x = ∑ x ∈ ({a} : Finset T), μ x + ∑ x ∈ (Finset.univ \ {a}), μ x := by
+                rw [add_comm, Finset.sum_sdiff (Finset.subset_univ _)]
+              rw [this, Finset.sum_singleton]
+              exact le_add_of_nonneg_right (Finset.sum_nonneg (fun x _ => hnonneg x))
+            have heq' : μ a = 1 := by linarith
+            contradiction
+          -- Define ν as the normalized restriction of μ to s
+          let ν : T → ℝ := fun t => if t = a then 0 else μ t / (1 - μ a)
+          -- Show ν ∈ simplexOn s
+          have hν_s : ν ∈ simplexOn s := by
+            simp only [simplexOn]
+            refine ⟨?_, ?_, ?_⟩
+            · intro t
+              by_cases ht : t = a <;> simp [ν, ht]
+              exact div_nonneg (hμ.1 t) (by linarith : 0 ≤ 1 - μ a)
+            · -- Show ∑ t, ν t = 1
+              have hsum_erase : ∑ t ∈ Finset.univ.erase a, μ t = 1 - μ a := by
+                have hsum := hμ.2.1
+                have := Finset.sum_erase_add (f := μ) (s := Finset.univ) (a := a) (Finset.mem_univ a)
+                linarith
+              have h1 : ∑ x : T, (if x = a then (0 : ℝ) else μ x / (1 - μ a)) =
+                        ∑ x ∈ Finset.univ.erase a, μ x / (1 - μ a) := by
+                have : ∑ x : T, (if x = a then (0 : ℝ) else μ x / (1 - μ a)) =
+                       ∑ x ∈ Finset.univ.erase a, (if x = a then (0 : ℝ) else μ x / (1 - μ a)) := by
+                  rw [← Finset.sum_erase_add _ _ (Finset.mem_univ a)]
+                  simp
+                rw [this]
+                exact Finset.sum_congr rfl fun x hx => if_neg (Finset.ne_of_mem_erase hx)
+              have h2 : ∑ x ∈ Finset.univ.erase a, μ x / (1 - μ a) =
+                        (∑ x ∈ Finset.univ.erase a, μ x) / (1 - μ a) := by
+                rw [← Finset.sum_div]
+              rw [show ∑ t, ν t = ∑ x : T, (if x = a then (0 : ℝ) else μ x / (1 - μ a)) from rfl]
+              rw [h1, h2, hsum_erase, div_self (by linarith : 1 - μ a ≠ 0)]
+            · intro t ht
+              simp only [ν]
+              by_cases ht' : t = a
+              · simp [ht']
+              · have htnot : t ∉ insert a s := fun h => ht (Finset.mem_insert.mp h |>.resolve_left ht')
+                simp [ht', hμ.2.2 t htnot]
+          -- Let δa be the vertex at a
+          let δa : T → ℝ := fun t => if t = a then 1 else 0
+          -- δa ∈ simplexOn (insert a s)
+          have hδa_simp : δa ∈ simplexOn (insert a s) := by
+            simp only [simplexOn]
+            refine ⟨?_, ?_, ?_⟩
+            · intro t; by_cases ht : t = a <;> simp [δa, ht]
+            · simp [δa]
+            · intro t ht; by_cases ht' : t = a <;> simp_all [δa]
+          -- Show μ = (μ a) • δa + (1 - μ a) • ν
+          have hμ_decomp : μ = (μ a) • δa + (1 - μ a) • ν := by
+            ext t
+            by_cases ht : t = a
+            · simp [ht, δa, ν]
+            · simp [ht, δa, ν]
+              have hne : 1 - μ a ≠ 0 := by linarith
+              field_simp
+          -- ν ∈ simplexOn (insert a s)
+          have hν_s' : ν ∈ simplexOn (insert a s) := simplexOn_mono (Finset.subset_insert a s) hν_s
+          -- Apply betweenness
+          have hbetween := hB δa hδa_simp ν hν_s' (μ a) ⟨hma_pos, hma_lt⟩
+          -- v δa is in vertex_values
+          have h_da_in : v δa ∈ vertex_values := by
+            simp [vertex_values, δa]
+          -- v ν is bounded by the inductive hypothesis
+          have hν_bound := hs_vv ν hν_s
+          rw [h_vv_split] at h_da_in ⊢
+          -- hs_vv_nonempty as Set.Nonempty
+          have hs_vv_nn : Set.Nonempty ((s.image (fun θ => v (fun t => if t = θ then 1 else 0)) : Finset ℝ) : Set ℝ) := by
+            use v (fun t => if t = hs.choose then 1 else 0)
+            exact Finset.mem_coe.mpr (Finset.mem_image.mpr ⟨hs.choose, hs.choose_spec, rfl⟩)
+          -- Combine the bounds
+          have h_lower := hbetween.1
+          have h_upper := hbetween.2
+          have h1 : v δa ≥ sInf ((insert (v δa) (s.image (fun θ => v (fun t => if t = θ then 1 else 0))) : Finset ℝ) : Set ℝ) :=
+            csInf_le (Set.Finite.bddBelow (Set.toFinite _)) (Finset.mem_insert_self _ _)
+          have h2 : v ν ≥ sInf ↑(s.image (fun θ => v (fun t => if t = θ then 1 else 0))) := hν_bound.1
+          have h3 : sInf ↑(s.image (fun θ => v (fun t => if t = θ then 1 else 0))) ≥
+                    sInf ((insert (v δa) (s.image (fun θ => v (fun t => if t = θ then 1 else 0))) : Finset ℝ) : Set ℝ) := by
+            apply csInf_le_csInf (Set.Finite.bddBelow (Set.toFinite _)) hs_vv_nn
+            simp
+          have h4 : v δa ≤ sSup ((insert (v δa) (s.image (fun θ => v (fun t => if t = θ then 1 else 0))) : Finset ℝ) : Set ℝ) :=
+            le_csSup (Set.Finite.bddAbove (Set.toFinite _)) (Finset.mem_insert_self _ _)
+          have h5 : v ν ≤ sSup ↑(s.image (fun θ => v (fun t => if t = θ then 1 else 0))) := hν_bound.2
+          have h6 : sSup ↑(s.image (fun θ => v (fun t => if t = θ then 1 else 0))) ≤
+                    sSup ((insert (v δa) (s.image (fun θ => v (fun t => if t = θ then 1 else 0))) : Finset ℝ) : Set ℝ) := by
+            apply csSup_le_csSup (Set.Finite.bddAbove (Set.toFinite _)) hs_vv_nn
+            simp
+          have hμ_eq : v μ = v (fun θ => μ a * δa θ + (1 - μ a) * ν θ) := by
+            rw [hμ_decomp]
+            congr 1
+            ext θ
+            simp [δa, ν]
+          rw [hμ_eq] at *
+          rw [min_le_iff] at h_lower
+          rw [le_max_iff] at h_upper
+          exact ⟨by rcases h_lower with h | h <;> linarith,
+            by rcases h_upper with h | h <;> linarith⟩
+    · -- s is empty, so Θ = {a}
+      rw [Finset.not_nonempty_iff_eq_empty] at hs
+      subst hs
+      simp only [Finset.insert_empty, simplexOn] at *
+      intro μ hμ
+      -- μ is the vertex at a
+      have hμ_eq : μ = (fun t => if t = a then 1 else 0) := by
+        have hzero : ∀ t ∉ ({a} : Finset T), μ t = 0 := fun t ht => hμ.2.2 t ht
+        ext t
+        by_cases ht : t = a
+        · simp only [ht, ↓reduceIte]
+          have hsum := hμ.2.1
+          have hsum' : ∑ t, μ t = μ a := by
+            have h1 : ∑ t ∈ ({a} : Finset T), μ t = ∑ t, μ t :=
+              Finset.sum_subset (Finset.subset_univ _) (fun t ht hta => hzero t (by simpa using hta))
+            rw [Finset.sum_singleton] at h1
+            linarith
+          linarith
+        · simp only [ht, ↓reduceIte]
+          convert hzero t (Finset.notMem_singleton.mpr ht)
+      rw [hμ_eq]
+      have hvv : vertex_values = {v (fun t => if t = a then 1 else 0)} := by rfl
+      rw [hvv]
+      simp
 
 /-- **`thinB_A4`.** If `v` satisfies betweenness on `Δ Θ`, then its thin-B
 correspondence `thinB Θ v` satisfies **A4**: non-empty, compact, order-connected
@@ -81,7 +287,637 @@ theorem thinB_A4 (Θ : Finset T) (hΘ : Θ.Nonempty) (v : (T → ℝ) → ℝ)
       (∀ μ ∈ simplexOn Θ, IsCompact (thinB Θ v μ)) ∧
       (∀ μ ∈ simplexOn Θ, (thinB Θ v μ).OrdConnected) ∧
       UpperHemicontinuousOn (thinB Θ v) (simplexOn Θ) := by
-  sorry
+  -- First establish boundedness from betweenness
+  obtain ⟨a₀, b₀, hbdd⟩ := IsBetweenness.bddOn_simplex Θ hΘ hB
+  -- Step 1: Show clusterValues is nonempty, closed, and bounded
+  have hcv_nonempty : ∀ μ ∈ simplexOn Θ, (clusterValues Θ v μ).Nonempty := by
+    intro μ hμ
+    use v μ
+    use fun _ => μ
+    simp [hμ]
+  have hcv_closed : ∀ μ ∈ simplexOn Θ, IsClosed (clusterValues Θ v μ) := by
+    intro μ hμ
+    apply isClosed_of_closure_subset
+    intro w hw
+    rw [mem_closure_iff_seq_limit] at hw
+    obtain ⟨w_n, hw_n_mem, hw_n_tend⟩ := hw
+    -- For each w_n, get a sequence x_n,k → μ with v(x_n,k) → w_n
+    -- Use diagonal argument: pick x_n,k close enough to μ and v(x_n,k) close enough to w_n
+    choose x hx_mem hx_tend hv_tend using fun n => hw_n_mem n
+    -- For each n, we need k large enough that x n k is close to μ and v(x n k) is close to w_n
+    have : ∀ n : ℕ, ∃ k : ℕ, x n k ∈ simplexOn Θ ∧ dist (x n k) μ < 1 / (n + 1) ∧ dist (v (x n k)) (w_n n) < 1 / (n + 1) := by
+      intro n
+      have := Metric.tendsto_atTop.mp (hv_tend n) (1 / (n + 1)) (by positivity)
+      obtain ⟨k₁, hk₁⟩ := this
+      obtain ⟨k₂, hk₂⟩ := Metric.tendsto_atTop.mp (hx_tend n) (1 / (n + 1)) (by positivity)
+      use max k₁ k₂
+      exact ⟨hx_mem n _, hk₂ (max k₁ k₂) (le_max_right _ _), hk₁ (max k₁ k₂) (le_max_left _ _)⟩
+    choose k hk using this
+    -- Define the diagonal sequence
+    let y : ℕ → (T → ℝ) := fun n => x n (k n)
+    refine ⟨y, ?_, ?_, ?_⟩
+    · -- Show y n ∈ simplexOn Θ
+      intro n
+      exact (hk n).1
+    · -- Show y → μ
+      rw [Metric.tendsto_atTop]
+      intro ε hε
+      obtain ⟨N, hN⟩ : ∃ N, ∀ n ≥ N, dist (x n (k n)) μ < ε := by
+        use Nat.ceil (ε⁻¹)
+        intro n hn
+        specialize hk n
+        have h1 : 1 / (n + 1 : ℝ) < ε := by
+          have hn'' : (n : ℝ) ≥ ε⁻¹ := by
+            have h1 : ⌈ε⁻¹⌉₊ ≤ n := hn
+            have h2 : (⌈ε⁻¹⌉₊ : ℝ) ≤ n := Nat.cast_le.mpr h1
+            linarith [Nat.le_ceil (ε⁻¹)]
+          have hn' : (n : ℝ) + 1 > ε⁻¹ := by linarith
+          rw [div_lt_iff₀ (by positivity : (0 : ℝ) < n + 1)]
+          nlinarith [mul_inv_cancel₀ (ne_of_gt hε)]
+        exact lt_of_lt_of_le (hk.2.1) (le_of_lt h1)
+      exact ⟨N, hN⟩
+    · -- Show v(y_n) → w
+      rw [Metric.tendsto_atTop]
+      intro ε hε
+      -- Use that w_n → w and v(y_n) is close to w_n
+      obtain ⟨N1, hN1⟩ : ∃ N1, ∀ n ≥ N1, dist (w_n n) w < ε / 2 := by
+        have := Metric.tendsto_atTop.mp hw_n_tend (ε / 2) (by linarith)
+        exact this
+      obtain ⟨N2, hN2⟩ : ∃ N2, ∀ n ≥ N2, dist (v (y n)) (w_n n) < ε / 2 := by
+        use Nat.ceil (2 / ε)
+        intro n hn
+        specialize hk n
+        have h1 : 1 / (n + 1 : ℝ) < ε / 2 := by
+          have hn' : (n : ℝ) + 1 > 2 / ε := by
+            have hn'' : (n : ℝ) ≥ 2 / ε := by
+              have h1 : ⌈2 / ε⌉₊ ≤ n := hn
+              have h2 : (⌈2 / ε⌉₊ : ℝ) ≤ n := Nat.cast_le.mpr h1
+              linarith [Nat.le_ceil (2 / ε)]
+            linarith
+          rw [div_lt_iff₀ (by positivity : (0 : ℝ) < n + 1)]
+          nlinarith [mul_div_cancel₀ 2 (ne_of_gt hε)]
+        exact lt_of_lt_of_le (hk.2.2) (le_of_lt h1)
+      use max N1 N2
+      intro n hn
+      calc dist (v (y n)) w ≤ dist (v (y n)) (w_n n) + dist (w_n n) w := dist_triangle _ _ _
+        _ < ε / 2 + ε / 2 := add_lt_add (hN2 n (le_trans (le_max_right _ _) hn)) (hN1 n (le_trans (le_max_left _ _) hn))
+        _ = ε := by ring
+  have hcv_bdd : ∀ μ ∈ simplexOn Θ, BddBelow (clusterValues Θ v μ) ∧ BddAbove (clusterValues Θ v μ) := by
+    intro μ hμ
+    have hsub : clusterValues Θ v μ ⊆ Set.Icc a₀ b₀ := by
+      intro w hw
+      obtain ⟨x, hx_mem, hx_tend, hv_tend⟩ := hw
+      apply Set.mem_Icc.mpr
+      constructor <;> by_contra hneg
+      · have hge : ∀ n, v (x n) ≥ a₀ := fun n => (hbdd (x n) (hx_mem n)).1
+        have : Tendsto (fun n => v (x n)) atTop (𝓝 w) := hv_tend
+        have := le_of_tendsto_of_tendsto' tendsto_const_nhds this hge
+        linarith
+      · have hle : ∀ n, v (x n) ≤ b₀ := fun n => (hbdd (x n) (hx_mem n)).2
+        have : Tendsto (fun n => v (x n)) atTop (𝓝 w) := hv_tend
+        have := le_of_tendsto_of_tendsto' this tendsto_const_nhds hle
+        linarith
+    exact ⟨⟨a₀, fun w hw => (hsub hw).1⟩, ⟨b₀, fun w hw => (hsub hw).2⟩⟩
+  have hcv_compact : ∀ μ ∈ simplexOn Θ, IsCompact (clusterValues Θ v μ) := by
+    intro μ hμ
+    have hb := hcv_bdd μ hμ
+    have hb' : Bornology.IsBounded (clusterValues Θ v μ) := by
+      obtain ⟨⟨a', ha'⟩, ⟨b', hb'⟩⟩ := hb
+      exact isBounded_iff_forall_norm_le.mpr ⟨|a'| + |b'| + 1, fun x hx => by
+        have hax : a' ≤ x := ha' hx
+        have hxb : x ≤ b' := hb' hx
+        simp only [Real.norm_eq_abs]
+        cases abs_cases a' <;> cases abs_cases b' <;> cases abs_cases x <;> linarith⟩
+    exact Metric.isCompact_iff_isClosed_bounded.mpr ⟨hcv_closed μ hμ, hb'⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
+  -- Non-empty: thinB = convexHull clusterValues, and clusterValues is nonempty
+  · intro μ hμ
+    obtain ⟨w, hw⟩ := hcv_nonempty μ hμ
+    exact ⟨w, subset_convexHull ℝ _ hw⟩
+  -- Compact: clusterValues is compact, and convexHull of a compact set in ℝ is compact
+  · intro μ hμ
+    have h : IsCompact (clusterValues Θ v μ) := hcv_compact μ hμ
+    have h_bdd : Bornology.IsBounded (clusterValues Θ v μ) := by
+      obtain ⟨⟨a', ha'⟩, ⟨b', hb'⟩⟩ := hcv_bdd μ hμ
+      exact isBounded_iff_forall_norm_le.mpr ⟨|a'| + |b'| + 1, fun x hx => by
+        have hax : a' ≤ x := ha' hx
+        have hxb : x ≤ b' := hb' hx
+        simp only [Real.norm_eq_abs]
+        cases abs_cases a' <;> cases abs_cases b' <;> cases abs_cases x <;> linarith⟩
+    -- The convex hull of a compact set in ℝ is the interval [inf, sup], which is compact
+    have h_bdd' : Bornology.IsBounded (convexHull ℝ (clusterValues Θ v μ)) := (isBounded_convexHull).mpr h_bdd
+    have h_closed' : IsClosed (convexHull ℝ (clusterValues Θ v μ)) := by
+      -- In ℝ, convex hull of compact K = [inf K, sup K], which is closed
+      have hne : (clusterValues Θ v μ).Nonempty := hcv_nonempty μ hμ
+      obtain ⟨a, ha_mem, ha_glb⟩ := h.exists_isGLB hne
+      obtain ⟨b, hb_mem, hb_lub⟩ := h.exists_isLUB hne
+      -- The convex hull of K is [a, b]
+      have heq : convexHull ℝ (clusterValues Θ v μ) = Set.Icc a b := by
+        apply Set.Subset.antisymm
+        · -- convexHull ⊆ Icc a b
+          intro x hx
+          have hsub : clusterValues Θ v μ ⊆ Set.Icc a b := fun y hy => ⟨ha_glb.1 hy, hb_lub.1 hy⟩
+          have h1 : x ∈ convexHull ℝ (Set.Icc a b) := convexHull_mono hsub hx
+          have hconv : Convex ℝ (Set.Icc a b) := convex_Icc a b
+          rwa [hconv.convexHull_eq] at h1
+        · -- Icc a b ⊆ convexHull
+          intro x hx
+          -- x = t*a + (1-t)*b for some t ∈ [0,1], and a,b ∈ S
+          have hab : a ≤ b := ha_glb.1 hb_mem
+          by_cases hab_eq : a = b
+          · -- a = b, so [a,b] = {a} and x = a
+            simp only [hab_eq, Set.Icc_self] at hx ⊢
+            have : x = b := hx
+            rw [this]
+            exact subset_convexHull ℝ _ hb_mem
+          · -- a < b
+            have hab_lt : a < b := lt_of_le_of_ne hab hab_eq
+            -- x = ((b-x)/(b-a)) * a + ((x-a)/(b-a)) * b
+            have hba_ne : b - a ≠ 0 := by linarith
+            have h1 : (b - x) / (b - a) + (x - a) / (b - a) = 1 := by field_simp; ring
+            have h2 : 0 ≤ (b - x) / (b - a) := by
+              apply div_nonneg <;> linarith [hx.1, hx.2]
+            have h3 : 0 ≤ (x - a) / (b - a) := by
+              apply div_nonneg <;> linarith [hx.1, hx.2]
+            have hx_eq : x = ((b - x) / (b - a)) • a + ((x - a) / (b - a)) • b := by
+              simp [smul_eq_mul]
+              field_simp
+              ring
+            rw [hx_eq]
+            have ha_mem' : a ∈ (convexHull ℝ (clusterValues Θ v μ)) := subset_convexHull ℝ _ ha_mem
+            have hb_mem' : b ∈ (convexHull ℝ (clusterValues Θ v μ)) := subset_convexHull ℝ _ hb_mem
+            have h2' : (b - x) / (b - a) ∈ Set.Icc (0 : ℝ) 1 := ⟨h2, by rw [div_le_one (by linarith : 0 < b - a)]; linarith [hx.1]⟩
+            have hseg : segment ℝ a b ⊆ convexHull ℝ (clusterValues Θ v μ) :=
+              (convex_convexHull ℝ _).segment_subset ha_mem' hb_mem'
+            have hx_seg : x ∈ segment ℝ a b := by
+              rw [segment_eq_image']
+              have h3' : (x - a) / (b - a) ∈ Set.Icc (0 : ℝ) 1 := ⟨h3, by
+                rw [div_le_one (by linarith : 0 < b - a)]
+                linarith [hx.2]⟩
+              use (x - a) / (b - a)
+              refine ⟨h3', ?_⟩
+              rw [hx_eq]
+              simp [smul_eq_mul]
+              field_simp
+              ring
+            rw [← hx_eq]
+            exact hseg hx_seg
+      rw [heq]
+      exact isClosed_Icc
+    exact Metric.isCompact_iff_isClosed_bounded.mpr ⟨h_closed', h_bdd'⟩
+  -- Ord-connected: convexHull of any set is ord-connected (it's convex)
+  · intro μ hμ
+    exact (convex_convexHull ℝ (clusterValues Θ v μ)).ordConnected
+  -- Upper hemicontinuity
+  · intro μ hμ U hU hU_open
+    -- thinB Θ v μ is compact, so we can find a thickening contained in U
+    have h_thinB_compact : IsCompact (thinB Θ v μ) := by
+      -- Reuse the proof from the Compact case
+      have h := hcv_compact μ hμ
+      have hne := hcv_nonempty μ hμ
+      obtain ⟨a, ha_mem, ha_glb⟩ := h.exists_isGLB hne
+      obtain ⟨b, hb_mem, hb_lub⟩ := h.exists_isLUB hne
+      have heq : thinB Θ v μ = Set.Icc a b := by
+        simp only [thinB]
+        apply Set.Subset.antisymm
+        · -- convexHull ⊆ Icc a b
+          intro x hx
+          have hsub : clusterValues Θ v μ ⊆ Set.Icc a b := fun y hy => ⟨ha_glb.1 hy, hb_lub.1 hy⟩
+          have h1 : x ∈ convexHull ℝ (Set.Icc a b) := convexHull_mono hsub hx
+          have hconv : Convex ℝ (Set.Icc a b) := convex_Icc a b
+          rwa [hconv.convexHull_eq] at h1
+        · -- Icc a b ⊆ convexHull
+          intro x hx
+          have hab : a ≤ b := ha_glb.1 hb_mem
+          by_cases hab_eq : a = b
+          · simp only [hab_eq, Set.Icc_self] at hx ⊢
+            have : x = b := hx
+            rw [this]
+            exact subset_convexHull ℝ _ hb_mem
+          · have hab_lt : a < b := lt_of_le_of_ne hab hab_eq
+            have hba_ne : b - a ≠ 0 := by linarith
+            have h2 : 0 ≤ (b - x) / (b - a) := by
+              apply div_nonneg <;> linarith [hx.1, hx.2]
+            have h3 : 0 ≤ (x - a) / (b - a) := by
+              apply div_nonneg <;> linarith [hx.1, hx.2]
+            have hx_eq : x = ((b - x) / (b - a)) • a + ((x - a) / (b - a)) • b := by
+              simp [smul_eq_mul]
+              field_simp
+              ring
+            rw [hx_eq]
+            have ha_mem' : a ∈ (convexHull ℝ (clusterValues Θ v μ)) := subset_convexHull ℝ _ ha_mem
+            have hb_mem' : b ∈ (convexHull ℝ (clusterValues Θ v μ)) := subset_convexHull ℝ _ hb_mem
+            have h2' : (b - x) / (b - a) ∈ Set.Icc (0 : ℝ) 1 := ⟨h2, by rw [div_le_one (by linarith : 0 < b - a)]; linarith [hx.1]⟩
+            have hseg : segment ℝ a b ⊆ convexHull ℝ (clusterValues Θ v μ) :=
+              (convex_convexHull ℝ _).segment_subset ha_mem' hb_mem'
+            have hx_seg : x ∈ segment ℝ a b := by
+              rw [segment_eq_image']
+              have h3' : (x - a) / (b - a) ∈ Set.Icc (0 : ℝ) 1 := ⟨h3, by
+                rw [div_le_one (by linarith : 0 < b - a)]
+                linarith [hx.2]⟩
+              use (x - a) / (b - a)
+              refine ⟨h3', ?_⟩
+              rw [hx_eq]
+              simp [smul_eq_mul]
+              field_simp
+              ring
+            rw [← hx_eq]
+            exact hseg hx_seg
+      rw [heq]
+      exact isCompact_Icc
+    -- Obtain δ > 0 such that δ-thickening of thinB Θ v μ is contained in U
+    obtain ⟨δ, hδ_pos, hδ⟩ : ∃ δ > 0, Metric.thickening δ (thinB Θ v μ) ⊆ U :=
+      IsCompact.exists_thickening_subset_open h_thinB_compact hU hU_open
+    -- thinB Θ v μ = Set.Icc (sInf K) (sSup K)
+    have hne := hcv_nonempty μ hμ
+    have hbdd_below := (hcv_bdd μ hμ).1
+    have hbdd_above := (hcv_bdd μ hμ).2
+    let a := sInf (clusterValues Θ v μ)
+    let b := sSup (clusterValues Θ v μ)
+    have h_thinB_eq : thinB Θ v μ = Set.Icc a b := by
+      simp only [thinB]
+      apply Set.Subset.antisymm
+      · intro x hx
+        have hsub : clusterValues Θ v μ ⊆ Set.Icc a b := fun y hy => ⟨csInf_le hbdd_below hy, le_csSup hbdd_above hy⟩
+        have h1 : x ∈ convexHull ℝ (Set.Icc a b) := convexHull_mono hsub hx
+        have hconv : Convex ℝ (Set.Icc a b) := convex_Icc a b
+        rwa [hconv.convexHull_eq] at h1
+      · intro x hx
+        have hab : a ≤ b := by
+          obtain ⟨y, hy⟩ := hne
+          exact le_trans (csInf_le hbdd_below hy) (le_csSup hbdd_above hy)
+        by_cases hab_eq : a = b
+        · simp only [hab_eq, Set.Icc_self] at hx ⊢
+          have : x = b := hx
+          rw [this]
+          exact subset_convexHull ℝ _ (IsCompact.sSup_mem (hcv_compact μ hμ) hne)
+        · have hab_lt : a < b := lt_of_le_of_ne hab hab_eq
+          have hba_ne : b - a ≠ 0 := by linarith
+          have h2 : 0 ≤ (b - x) / (b - a) := by
+            apply div_nonneg <;> linarith [hx.1, hx.2]
+          have h3 : 0 ≤ (x - a) / (b - a) := by
+            apply div_nonneg <;> linarith [hx.1, hx.2]
+          have hx_eq : x = ((b - x) / (b - a)) • a + ((x - a) / (b - a)) • b := by
+            simp [smul_eq_mul]
+            field_simp
+            ring
+          rw [hx_eq]
+          have ha_mem' : a ∈ (convexHull ℝ (clusterValues Θ v μ)) := by
+            have ha_mem : a ∈ clusterValues Θ v μ := IsCompact.sInf_mem (hcv_compact μ hμ) hne
+            exact subset_convexHull ℝ _ ha_mem
+          have hb_mem' : b ∈ (convexHull ℝ (clusterValues Θ v μ)) := by
+            have hb_mem : b ∈ clusterValues Θ v μ := IsCompact.sSup_mem (hcv_compact μ hμ) hne
+            exact subset_convexHull ℝ _ hb_mem
+          have h2' : (b - x) / (b - a) ∈ Set.Icc (0 : ℝ) 1 := ⟨h2, by rw [div_le_one (by linarith : 0 < b - a)]; linarith [hx.1]⟩
+          have hseg : segment ℝ a b ⊆ convexHull ℝ (clusterValues Θ v μ) :=
+            (convex_convexHull ℝ _).segment_subset ha_mem' hb_mem'
+          have hx_seg : x ∈ segment ℝ a b := by
+            rw [segment_eq_image']
+            have h3' : (x - a) / (b - a) ∈ Set.Icc (0 : ℝ) 1 := ⟨h3, by
+              rw [div_le_one (by linarith : 0 < b - a)]
+              linarith [hx.2]⟩
+            use (x - a) / (b - a)
+            refine ⟨h3', ?_⟩
+            rw [hx_eq]
+            simp [smul_eq_mul]
+            field_simp
+            ring
+          rw [← hx_eq]
+          exact hseg hx_seg
+    -- Prove closed graph of clusterValues: if μ_n → μ, w_n → w, w_n ∈ clusterValues μ_n,
+    -- then w ∈ clusterValues μ
+    have hcv_closed_graph : ∀ (μs : ℕ → (T → ℝ)) (μ : T → ℝ) (ws : ℕ → ℝ) (w : ℝ),
+        Tendsto μs atTop (𝓝 μ) →
+        (∀ n, μs n ∈ simplexOn Θ) →
+        Tendsto ws atTop (𝓝 w) →
+        (∀ n, ws n ∈ clusterValues Θ v (μs n)) →
+        w ∈ clusterValues Θ v μ := by
+      intro μs μ ws w hμs_tend hμs_mem hws_tend hws_in
+      -- For each w_n ∈ clusterValues μ_n, there's a sequence x_n,k → μ_n with v(x_n,k) → w_n
+      choose x hx_mem hx_tend hv_tend using fun n => hws_in n
+      -- Diagonal argument: pick k large enough that x n k is close to μ_n and v(x n k) is close to w_n
+      have : ∀ n : ℕ, ∃ k : ℕ, dist (x n k) (μs n) < 1 / (n + 1) ∧ dist (v (x n k)) (ws n) < 1 / (n + 1) := by
+        intro n
+        have := Metric.tendsto_atTop.mp (hx_tend n) (1 / (n + 1)) (by positivity)
+        obtain ⟨k₁, hk₁⟩ := this
+        have := Metric.tendsto_atTop.mp (hv_tend n) (1 / (n + 1)) (by positivity)
+        obtain ⟨k₂, hk₂⟩ := this
+        use max k₁ k₂
+        exact ⟨hk₁ (max k₁ k₂) (le_max_left _ _), hk₂ (max k₁ k₂) (le_max_right _ _)⟩
+      choose k hk using this
+      let y : ℕ → (T → ℝ) := fun n => x n (k n)
+      refine ⟨y, fun n => (hx_mem n) _, ?_, ?_⟩
+      · -- Show y n → μ
+        rw [Metric.tendsto_atTop]
+        intro ε hε
+        obtain ⟨N1, hN1⟩ : ∃ N1, ∀ n ≥ N1, dist (μs n) μ < ε / 2 := by
+          have := Metric.tendsto_atTop.mp hμs_tend (ε / 2) (by linarith)
+          exact this
+        obtain ⟨N2, hN2⟩ : ∃ N2 : ℕ, ∀ n ≥ N2, 1 / (n + 1 : ℝ) < ε / 2 := by
+          use Nat.ceil (2 / ε)
+          intro n hn
+          have hn' : (n : ℝ) ≥ 2 / ε := by
+            have h1 := Nat.le_ceil (2 / ε)
+            have h2 : (Nat.ceil (2 / ε) : ℝ) ≤ n := Nat.cast_le.mpr hn
+            linarith
+          have hn'' : (n : ℝ) + 1 > 0 := by positivity
+          rw [div_lt_iff₀ hn'']
+          have : 2 / ε ≤ n := hn'
+          nlinarith [mul_div_cancel₀ 2 (ne_of_gt hε)]
+        use max N1 N2
+        intro n hn
+        calc dist (y n) μ ≤ dist (y n) (μs n) + dist (μs n) μ := dist_triangle _ _ _
+          _ < 1 / (n + 1) + ε / 2 := add_lt_add (hk n).1 (hN1 n (le_trans (le_max_left _ _) hn))
+          _ < ε / 2 + ε / 2 := by linarith [hN2 n (le_trans (le_max_right _ _) hn)]
+          _ = ε := by ring
+      · -- Show v (y n) → w using squeeze theorem
+        have hclose : ∀ n, dist (v (y n)) (ws n) < 1 / (n + 1 : ℝ) := by
+          intro n
+          simp only [y]
+          exact (hk n).2
+        rw [Metric.tendsto_atTop]
+        intro ε hε
+        obtain ⟨N1, hN1⟩ : ∃ N1 : ℕ, ∀ n ≥ N1, 1 / (n + 1 : ℝ) < ε / 2 := by
+          use Nat.ceil (2 / ε)
+          intro n hn
+          have hn' : (n : ℝ) ≥ 2 / ε := by
+            have h1 := Nat.le_ceil (2 / ε)
+            have h2 : ⌈2 / ε⌉₊ ≤ n := hn
+            have h3 : (⌈2 / ε⌉₊ : ℝ) ≤ n := Nat.cast_le.mpr h2
+            linarith
+          rw [div_lt_iff₀ (by positivity : (n : ℝ) + 1 > 0)]
+          nlinarith [mul_div_cancel₀ 2 (ne_of_gt hε)]
+        obtain ⟨N2, hN2⟩ : ∃ N2 : ℕ, ∀ n ≥ N2, dist (ws n) w < ε / 2 := by
+          have := Metric.tendsto_atTop.mp hws_tend (ε / 2) (by linarith)
+          exact ⟨this.choose, fun n hn => this.choose_spec n hn⟩
+        use max N1 N2
+        intro n hn
+        calc dist (v (y n)) w ≤ dist (v (y n)) (ws n) + dist (ws n) w := dist_triangle _ _ _
+          _ < 1 / (n + 1) + ε / 2 := add_lt_add (hclose n) (hN2 n (le_trans (le_max_right _ _) hn))
+          _ < ε / 2 + ε / 2 := by linarith [hN1 n (le_trans (le_max_left _ _) hn)]
+          _ = ε := by ring
+    -- All clusterValues are contained in the global bounds [a₀, b₀]
+    have hsub_global : ∀ μ' ∈ simplexOn Θ, clusterValues Θ v μ' ⊆ Set.Icc a₀ b₀ := by
+      intro μ' hμ' w hw
+      obtain ⟨x, hx_mem, hx_tend, hv_tend⟩ := hw
+      apply Set.mem_Icc.mpr
+      constructor <;> by_contra hneg
+      · have hge : ∀ n, v (x n) ≥ a₀ := fun n => (hbdd (x n) (hx_mem n)).1
+        have := le_of_tendsto_of_tendsto' tendsto_const_nhds hv_tend hge
+        linarith
+      · have hle : ∀ n, v (x n) ≤ b₀ := fun n => (hbdd (x n) (hx_mem n)).2
+        have := le_of_tendsto_of_tendsto' hv_tend tendsto_const_nhds hle
+        linarith
+    -- USC of sSup using closed graph
+    have h_sup_usc : UpperSemicontinuousOn (fun μ' => sSup (clusterValues Θ v μ')) (simplexOn Θ) := by
+      intro μ' hμ' y hy
+      by_contra hnot
+      -- hnot : ¬ ∀ᶠ x' in 𝓝[simplexOn Θ] μ', sSup(clusterValues x') < y
+      -- i.e., ¬ ∀ W ∈ 𝓝[simplexOn Θ] μ', ∀ μ'' ∈ W, sSup(clusterValues μ'') < y
+      have h_eventually : ∀ W ∈ 𝓝[simplexOn Θ] μ', ∃ μ'' ∈ W, sSup (clusterValues Θ v μ'') ≥ y := by
+        intro W hW
+        by_contra h
+        push_neg at h
+        exact hnot (Filter.eventually_of_mem hW h)
+      -- Construct sequence μn → μ' with sSup(clusterValues μn) ≥ y
+      have hseq : ∀ n : ℕ, ∃ μ'' ∈ Metric.ball μ' (1 / (n + 1)), μ'' ∈ simplexOn Θ ∧
+          sSup (clusterValues Θ v μ'') ≥ y := by
+        intro n
+        have hμ'_in : μ' ∈ Metric.ball μ' (1 / (n + 1)) := by
+          simp [dist_self]
+          positivity
+        have hW : Metric.ball μ' (1 / (n + 1)) ∈ 𝓝 μ' := Metric.isOpen_ball.mem_nhds hμ'_in
+        have hW' : Metric.ball μ' (1 / (n + 1)) ∩ simplexOn Θ ∈ 𝓝[simplexOn Θ] μ' := by
+          rw [mem_nhdsWithin]
+          exact ⟨Metric.ball μ' (1 / (n + 1)), Metric.isOpen_ball, hμ'_in, Subset.refl _⟩
+        obtain ⟨μ'', hμ'', hμ''_ge⟩ := h_eventually _ hW'
+        exact ⟨μ'', hμ''.1, hμ''.2, hμ''_ge⟩
+      choose μn hμn_dist hμn_mem hμn_ge using hseq
+      have hμn_mem' : ∀ n, μn n ∈ simplexOn Θ := fun n => by
+        have := hμn_mem n
+        exact this
+      have hμn_tend : Tendsto μn atTop (𝓝 μ') := by
+        rw [Metric.tendsto_atTop]
+        intro ε hε
+        use Nat.ceil (1 / ε)
+        intro n hn
+        have hdist := hμn_dist n
+        rw [Metric.mem_ball] at hdist
+        have h1 : (n : ℝ) ≥ 1 / ε := by
+          have h2 := Nat.le_ceil (1 / ε)
+          have h3 : (⌈1 / ε⌉₊ : ℝ) ≤ n := Nat.cast_le.mpr hn
+          linarith
+        rw [dist_comm] at hdist ⊢
+        have h2 : (1 : ℝ) / (n + 1) < ε := by
+          rw [div_lt_iff₀ (by positivity : (n : ℝ) + 1 > 0)]
+          nlinarith [mul_div_cancel₀ 1 (ne_of_gt hε)]
+        linarith
+      have hμn_mem_nhds : Tendsto μn atTop (𝓝[simplexOn Θ] μ') := by
+        apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+        · exact hμn_tend
+        · exact Filter.Eventually.of_forall hμn_mem'
+      -- Now we have μn → μ' with sSup(clusterValues μn) ≥ y for all n
+      -- Pick z_n ∈ clusterValues μn with z_n ≥ y
+      have h_z_exists : ∀ n, ∃ z ∈ clusterValues Θ v (μn n), z ≥ y := by
+        intro n
+        have hs := hμn_ge n
+        have hne := hcv_nonempty (μn n) (hμn_mem' n)
+        exact IsCompact.sSup_mem (hcv_compact (μn n) (hμn_mem' n)) hne |> fun h => ⟨_, h, hs⟩
+      choose zn hzn_mem hzn_ge using h_z_exists
+      -- zn is bounded, so has a convergent subsequence
+      have hbdd_below' : ∀ μ'' ∈ simplexOn Θ, BddBelow (clusterValues Θ v μ'') := fun μ'' hμ'' => (hcv_bdd μ'' hμ'').1
+      have hbdd_above' : ∀ μ'' ∈ simplexOn Θ, BddAbove (clusterValues Θ v μ'') := fun μ'' hμ'' => (hcv_bdd μ'' hμ'').2
+      have hsub_global : ∀ μ' ∈ simplexOn Θ, clusterValues Θ v μ' ⊆ Set.Icc a₀ b₀ := by
+        intro μ' hμ' w hw
+        obtain ⟨x, hx_mem, hx_tend, hv_tend⟩ := hw
+        apply Set.mem_Icc.mpr
+        constructor <;> by_contra hneg
+        · have hge : ∀ n, v (x n) ≥ a₀ := fun n => (hbdd (x n) (hx_mem n)).1
+          have := le_of_tendsto_of_tendsto' tendsto_const_nhds hv_tend hge
+          linarith
+        · have hle : ∀ n, v (x n) ≤ b₀ := fun n => (hbdd (x n) (hx_mem n)).2
+          have := le_of_tendsto_of_tendsto' hv_tend tendsto_const_nhds hle
+          linarith
+      have hbounded : ∀ n, zn n ∈ Set.Icc a₀ b₀ := by
+        intro n
+        have hmem := hzn_mem n
+        exact ⟨(hsub_global (μn n) (hμn_mem' n) hmem).1, (hsub_global (μn n) (hμn_mem' n) hmem).2⟩
+      have hcompact : IsCompact (Set.Icc a₀ b₀) := isCompact_Icc
+      have ⟨z, hz_mem_Icc, z_subseq, hz_subseq_mono, hz_subseq_tend⟩ := hcompact.isSeqCompact fun n => hbounded n
+      -- z ∈ clusterValues μ' by closed graph
+      have hz_mem : z ∈ clusterValues Θ v μ' := by
+        apply hcv_closed_graph (fun k => μn (z_subseq k)) μ' (fun k => zn (z_subseq k)) z
+        · exact hμn_tend.comp hz_subseq_mono.tendsto_atTop
+        · intro k; exact hμn_mem' (z_subseq k)
+        · exact hz_subseq_tend
+        · intro k; exact hzn_mem (z_subseq k)
+      -- z ≥ y since zn (z_subseq k) ≥ y for all k
+      have hz_ge : z ≥ y := by
+        by_contra hlt
+        push_neg at hlt
+        have : z < y := hlt
+        have h_eventually : ∀ᶠ k in atTop, zn (z_subseq k) < y := hz_subseq_tend.eventually (gt_mem_nhds this)
+        obtain ⟨k, hk⟩ := h_eventually.exists
+        linarith [hzn_ge (z_subseq k)]
+      -- Thus sSup(clusterValues μ') ≥ z ≥ y, contradicting y > sSup
+      linarith [le_csSup (hbdd_above' μ' hμ') hz_mem, hz_ge]
+    -- LSC of sInf using closed graph
+    have h_inf_lsc : LowerSemicontinuousOn (fun μ' => sInf (clusterValues Θ v μ')) (simplexOn Θ) := by
+      intro μ' hμ' y hy
+      by_contra hnot
+      -- hnot : ¬ ∀ᶠ x' in 𝓝[simplexOn Θ] μ', y < sInf(clusterValues x')
+      -- i.e., ¬ ∀ W ∈ 𝓝[simplexOn Θ] μ', ∀ μ'' ∈ W, y < sInf(clusterValues μ'')
+      have h_eventually : ∀ W ∈ 𝓝[simplexOn Θ] μ', ∃ μ'' ∈ W, sInf (clusterValues Θ v μ'') ≤ y := by
+        intro W hW
+        by_contra h
+        push_neg at h
+        exact hnot (Filter.eventually_of_mem hW h)
+      -- Construct sequence μn → μ' with sInf(clusterValues μn) ≤ y
+      have hseq : ∀ n : ℕ, ∃ μ'' ∈ Metric.ball μ' (1 / (n + 1)), μ'' ∈ simplexOn Θ ∧
+          sInf (clusterValues Θ v μ'') ≤ y := by
+        intro n
+        have hμ'_in : μ' ∈ Metric.ball μ' (1 / (n + 1)) := by
+          simp [dist_self]
+          positivity
+        have hW : Metric.ball μ' (1 / (n + 1)) ∈ 𝓝 μ' := Metric.isOpen_ball.mem_nhds hμ'_in
+        have hW' : Metric.ball μ' (1 / (n + 1)) ∩ simplexOn Θ ∈ 𝓝[simplexOn Θ] μ' := by
+          rw [mem_nhdsWithin]
+          exact ⟨Metric.ball μ' (1 / (n + 1)), Metric.isOpen_ball, hμ'_in, Subset.refl _⟩
+        obtain ⟨μ'', hμ'', hμ''_le⟩ := h_eventually _ hW'
+        exact ⟨μ'', hμ''.1, hμ''.2, hμ''_le⟩
+      choose μn hμn_dist hμn_mem hμn_le using hseq
+      have hμn_mem' : ∀ n, μn n ∈ simplexOn Θ := fun n => by
+        have := hμn_mem n
+        exact this
+      have hμn_tend : Tendsto μn atTop (𝓝 μ') := by
+        rw [Metric.tendsto_atTop]
+        intro ε hε
+        use Nat.ceil (1 / ε)
+        intro n hn
+        have hdist := hμn_dist n
+        rw [Metric.mem_ball] at hdist
+        have h1 : (n : ℝ) ≥ 1 / ε := by
+          have h2 := Nat.le_ceil (1 / ε)
+          have h3 : (⌈1 / ε⌉₊ : ℝ) ≤ n := Nat.cast_le.mpr hn
+          linarith
+        rw [dist_comm] at hdist ⊢
+        have h2 : (1 : ℝ) / (n + 1) < ε := by
+          rw [div_lt_iff₀ (by positivity : (n : ℝ) + 1 > 0)]
+          nlinarith [mul_div_cancel₀ 1 (ne_of_gt hε)]
+        linarith
+      have hμn_mem_nhds : Tendsto μn atTop (𝓝[simplexOn Θ] μ') := by
+        apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+        · exact hμn_tend
+        · exact Filter.Eventually.of_forall hμn_mem'
+      -- Now we have μn → μ' with sInf(clusterValues μn) ≤ y for all n
+      -- Pick z_n ∈ clusterValues μn with z_n ≤ y
+      have h_z_exists : ∀ n, ∃ z ∈ clusterValues Θ v (μn n), z ≤ y := by
+        intro n
+        have hs := hμn_le n
+        have hne := hcv_nonempty (μn n) (hμn_mem' n)
+        exact IsCompact.sInf_mem (hcv_compact (μn n) (hμn_mem' n)) hne |> fun h => ⟨_, h, hs⟩
+      choose zn hzn_mem hzn_le using h_z_exists
+      -- zn is bounded, so has a convergent subsequence
+      have hbdd_below' : ∀ μ'' ∈ simplexOn Θ, BddBelow (clusterValues Θ v μ'') := fun μ'' hμ'' => (hcv_bdd μ'' hμ'').1
+      have hbdd_above' : ∀ μ'' ∈ simplexOn Θ, BddAbove (clusterValues Θ v μ'') := fun μ'' hμ'' => (hcv_bdd μ'' hμ'').2
+      have hbounded : ∀ n, zn n ∈ Set.Icc a₀ b₀ := by
+        intro n
+        have hmem := hzn_mem n
+        exact ⟨(hsub_global (μn n) (hμn_mem' n) hmem).1, (hsub_global (μn n) (hμn_mem' n) hmem).2⟩
+      have hcompact : IsCompact (Set.Icc a₀ b₀) := isCompact_Icc
+      have ⟨z, hz_mem_Icc, z_subseq, hz_subseq_mono, hz_subseq_tend⟩ := hcompact.isSeqCompact fun n => hbounded n
+      -- z ∈ clusterValues μ' by closed graph
+      have hz_mem : z ∈ clusterValues Θ v μ' := by
+        apply hcv_closed_graph (fun k => μn (z_subseq k)) μ' (fun k => zn (z_subseq k)) z
+        · exact hμn_tend.comp hz_subseq_mono.tendsto_atTop
+        · intro k; exact hμn_mem' (z_subseq k)
+        · exact hz_subseq_tend
+        · intro k; exact hzn_mem (z_subseq k)
+      -- z ≤ y since zn (z_subseq k) ≤ y for all k
+      have hz_le : z ≤ y := by
+        by_contra hgt
+        push_neg at hgt
+        have : z > y := hgt
+        have h_eventually : ∀ᶠ k in atTop, zn (z_subseq k) > y := hz_subseq_tend.eventually (lt_mem_nhds this)
+        obtain ⟨k, hk⟩ := h_eventually.exists
+        linarith [hzn_le (z_subseq k)]
+      -- Thus sInf(clusterValues μ') ≤ z ≤ y, contradicting y < sInf
+      linarith [csInf_le (hbdd_below' μ' hμ') hz_mem, hz_le]
+    -- Use USC of sSup and LSC of sInf to prove UHC
+    -- thinB Θ v μ = [sInf, sSup] ⊆ U, and U is open
+    have h_thinB_eq : thinB Θ v μ = Set.Icc a b := h_thinB_eq
+    have hab : a ≤ b := by
+      obtain ⟨w, hw⟩ := hne
+      exact le_trans (csInf_le (hcv_bdd μ hμ).1 hw) (le_csSup (hcv_bdd μ hμ).2 hw)
+    -- Get δ > 0 such that δ-thickening of thinB Θ v μ is in U
+    have h_thinB_compact : IsCompact (thinB Θ v μ) := h_thinB_eq ▸ isCompact_Icc
+    -- Use LSC of sInf: since a - δ/2 < a = sInf(clusterValues μ), eventually sInf > a - δ/2
+    have hLSC := h_inf_lsc μ hμ (a - δ/2) (by linarith : a - δ/2 < a)
+    -- Use USC of sSup: since b = sSup(clusterValues μ) < b + δ/2, eventually sSup < b + δ/2
+    have hUSC := h_sup_usc μ hμ (b + δ/2) (by linarith : b < b + δ/2)
+    -- hLSC : ∀ᶠ x in 𝓝[simplexOn Θ] μ, a - δ/2 < sInf(clusterValues x)
+    -- hUSC : ∀ᶠ x in 𝓝[simplexOn Θ] μ, sSup(clusterValues x) < b + δ/2
+    rw [Filter.eventually_iff_exists_mem] at hLSC hUSC
+    obtain ⟨W₁, hW₁, hW₁'⟩ := hLSC
+    obtain ⟨W₂, hW₂, hW₂'⟩ := hUSC
+    use W₁ ∩ W₂, Filter.inter_mem hW₁ hW₂
+    intro μ' hμ'
+    by_cases hμ'_in : μ' ∈ simplexOn Θ
+    · have hinf : a - δ/2 < sInf (clusterValues Θ v μ') := hW₁' μ' hμ'.1
+      have hsup : sSup (clusterValues Θ v μ') < b + δ/2 := hW₂' μ' hμ'.2
+      -- thinB Θ v μ' ⊆ Icc (sInf) (sSup) ⊆ [a - δ/2, b + δ/2]
+      have h_sub : thinB Θ v μ' ⊆ Set.Icc (a - δ/2) (b + δ/2) := by
+        intro x hx
+        simp only [thinB] at hx
+        have hne' := hcv_nonempty μ' hμ'_in
+        have hbdd_below' := (hcv_bdd μ' hμ'_in).1
+        have hbdd_above' := (hcv_bdd μ' hμ'_in).2
+        have h_mem : x ∈ convexHull ℝ (clusterValues Θ v μ') := hx
+        have hsub : clusterValues Θ v μ' ⊆ Set.Icc (sInf (clusterValues Θ v μ')) (sSup (clusterValues Θ v μ')) := fun y hy => ⟨csInf_le hbdd_below' hy, le_csSup hbdd_above' hy⟩
+        have h1 : x ∈ convexHull ℝ (Set.Icc (sInf (clusterValues Θ v μ')) (sSup (clusterValues Θ v μ'))) := convexHull_mono hsub hx
+        have hconv : Convex ℝ (Set.Icc (sInf (clusterValues Θ v μ')) (sSup (clusterValues Θ v μ'))) := convex_Icc _ _
+        rw [hconv.convexHull_eq] at h1
+        have hx_in : x ∈ Set.Icc (sInf (clusterValues Θ v μ')) (sSup (clusterValues Θ v μ')) := h1
+        exact ⟨by linarith [hx_in.1], by linarith [hx_in.2]⟩
+      -- Icc (a - δ/2) (b + δ/2) ⊆ thickening δ (Icc a b) ⊆ U
+      have h_thick : Set.Icc (a - δ/2) (b + δ/2) ⊆ Metric.thickening δ (Set.Icc a b) := by
+        intro x hx
+        simp only [Metric.thickening, Set.mem_setOf_eq]
+        -- Find a point in [a, b] within distance δ of x
+        -- Case split: if x ≤ a, use a; if x ≥ b, use b; otherwise use x itself
+        rw [Metric.infEDist_lt_iff]
+        by_cases hxle : x ≤ a
+        · -- x ≤ a, so the closest point is a
+          have hxa : dist x a < δ := by
+            rw [Real.dist_eq]
+            rw [abs_lt]
+            constructor <;> linarith [hx.1]
+          refine ⟨a, ⟨le_refl a, hab⟩, ?_⟩
+          simpa [Real.dist_eq] using hxa
+        · by_cases hxge : x ≥ b
+          · -- x ≥ b, so the closest point is b
+            have hxb : dist x b < δ := by
+              rw [Real.dist_eq]
+              rw [abs_lt]
+              constructor <;> linarith [hx.2]
+            exact ⟨b, ⟨hab, le_refl b⟩, by simpa [Real.dist_eq] using hxb⟩
+          · -- a < x < b, so x ∈ [a, b]
+            have hax : a < x := not_le.mp hxle
+            have hxb : x < b := not_le.mp hxge
+            exact ⟨x, ⟨hax.le, hxb.le⟩, by simp [dist_self]; exact hδ_pos⟩
+      rw [h_thinB_eq] at hδ
+      exact Set.Subset.trans h_sub (Set.Subset.trans h_thick hδ)
+    · -- If μ' ∉ simplexOn Θ, then clusterValues Θ v μ' = ∅ (no sequence in simplexOn Θ converges to μ')
+      -- So thinB Θ v μ' = ∅ ⊆ U
+      simp only [thinB]
+      have h_empty : clusterValues Θ v μ' = ∅ := by
+        apply Set.eq_empty_of_forall_notMem
+        intro w hw
+        obtain ⟨x, hx_mem, hx_tend, hv_tend⟩ := hw
+        have := (isClosed_simplexOn Θ).mem_of_tendsto hx_tend (Filter.Eventually.of_forall hx_mem)
+        exact hμ'_in this
+      rw [h_empty, convexHull_empty]
+      exact Set.empty_subset U
 
 /-! ## Goal 2 (intermediate): the envelopes inherit betweenness
 
@@ -129,7 +965,155 @@ theorem thinB_eq_Icc (Θ : Finset T) (hΘ : Θ.Nonempty)
     (v : (T → ℝ) → ℝ) (hB : IsBetweenness Θ v)
     (μ : T → ℝ) (hμ : μ ∈ simplexOn Θ) :
     thinB Θ v μ = Set.Icc (thinBLower Θ v μ) (thinBUpper Θ v μ) := by
-  sorry
+  -- We need to show convexHull ℝ S = Icc (sInf S) (sSup S) for S = clusterValues Θ v μ
+  -- This requires S to be nonempty, compact, and ordConnected
+  have hne : (clusterValues Θ v μ).Nonempty := by
+    use v μ
+    refine ⟨fun _ => μ, fun _ => hμ, ?_, ?_⟩
+    · exact tendsto_const_nhds
+    · exact tendsto_const_nhds
+  -- Now we need that clusterValues is bounded
+  obtain ⟨a, b, hbdd⟩ := hB.bddOn_simplex Θ hΘ
+  -- clusterValues is bounded
+  have hbdd' : BddBelow (clusterValues Θ v μ) := by
+    use a
+    intro w hw
+    obtain ⟨x, hx_mem, hx_tendsto, hv_tendsto⟩ := hw
+    apply ge_of_tendsto hv_tendsto
+    filter_upwards with n
+    exact (hbdd (x n) (hx_mem n)).1
+  have hbdd'' : BddAbove (clusterValues Θ v μ) := by
+    use b
+    intro w hw
+    obtain ⟨x, hx_mem, hx_tendsto, hv_tendsto⟩ := hw
+    apply le_of_tendsto hv_tendsto
+    filter_upwards with n
+    exact (hbdd (x n) (hx_mem n)).2
+  -- clusterValues is closed
+  have hclosed : IsClosed (clusterValues Θ v μ) := by
+    refine isClosed_of_closure_subset ?_
+    intro w hw
+    rw [mem_closure_iff_seq_limit] at hw
+    obtain ⟨x, hx_mem, hx_tendsto⟩ := hw
+    -- For each x n ∈ clusterValues, there's a sequence converging to μ with v-values → x n
+    choose seq hseq_mem hseq_tendsto μ_tendsto using hx_mem
+    -- Diagonal argument
+    -- For each n, we can find k such that seq n k is close to μ and v(seq n k) is close to x n
+    have h1' : ∀ n, ∃ K, ∀ k ≥ K, |v (seq n k) - x n| < 1 / (n + 1 : ℝ) := by
+      intro n
+      have := μ_tendsto n
+      rw [Metric.tendsto_atTop] at this
+      exact this (1 / (n + 1 : ℝ)) (by positivity)
+    have h1 : ∀ n m, ∃ k ≥ m, |v (seq n k) - x n| < 1 / (n + 1 : ℝ) := by
+      intro n m
+      obtain ⟨K, hK⟩ := h1' n
+      exact ⟨max m K, le_max_left _ _, hK _ (le_max_right _ _)⟩
+    have hseq_tendsto_pt : ∀ n θ, Tendsto (fun k => seq n k θ) atTop (𝓝 (μ θ)) := by
+      intro n θ
+      exact tendsto_pi_nhds.mp (hseq_tendsto n) θ
+    have h2' : ∀ n, ∃ K, ∀ k ≥ K, ∀ θ, |seq n k θ - μ θ| < 1 / (n + 1 : ℝ) := by
+      intro n
+      have hfin : ∀ θ, ∃ K_θ, ∀ k ≥ K_θ, |seq n k θ - μ θ| < 1 / (n + 1 : ℝ) := by
+        intro θ
+        have := hseq_tendsto_pt n θ
+        rw [Metric.tendsto_atTop] at this
+        exact this (1 / (n + 1 : ℝ)) (by positivity)
+      choose K hK using hfin
+      use Finset.univ.sup K
+      intro k hk θ
+      exact hK θ _ (le_trans (Finset.le_sup (Finset.mem_univ θ)) hk)
+    -- Combine h1 and h2 to get a common k
+    have h3 : ∀ n m, ∃ k ≥ m, |v (seq n k) - x n| < 1 / (n + 1 : ℝ) ∧ ∀ θ, |seq n k θ - μ θ| < 1 / (n + 1 : ℝ) := by
+      intro n m
+      obtain ⟨K₁, hK₁⟩ := h1' n
+      obtain ⟨K₂, hK₂⟩ := h2' n
+      use max m (max K₁ K₂)
+      constructor
+      · exact le_max_left _ _
+      · constructor
+        · apply hK₁
+          calc K₁ ≤ max K₁ K₂ := le_max_left _ _
+            _ ≤ max m (max K₁ K₂) := le_max_right _ _
+        · apply hK₂
+          calc K₂ ≤ max K₁ K₂ := le_max_right _ _
+            _ ≤ max m (max K₁ K₂) := le_max_right _ _
+    -- Define the diagonal sequence f : ℕ → ℕ
+    choose f hf using h3
+    -- Use y n = seq n (f n n), which satisfies h3 n n
+    let y : ℕ → (T → ℝ) := fun n => seq n (f n n)
+    -- Show y ∈ clusterValues Θ v μ
+    refine ⟨y, ?_, ?_, ?_⟩
+    · -- y n ∈ simplexOn Θ for all n
+      intro n
+      exact hseq_mem _ _
+    · -- y → μ (pointwise)
+      rw [tendsto_pi_nhds]
+      intro θ
+      rw [Metric.tendsto_atTop]
+      intro ε hε
+      use Nat.ceil (ε⁻¹)
+      intro n hn
+      have hf_bound := (hf n n).2.2 θ
+      simp only [y] at *
+      have h1n : (1 : ℝ) / (n + 1) ≤ ε := by
+        rw [div_le_iff₀ (by positivity : (0 : ℝ) < n + 1)]
+        have : (n : ℝ) ≥ Nat.ceil (ε⁻¹) := by exact_mod_cast hn
+        nlinarith [Nat.le_ceil (ε⁻¹), mul_inv_cancel₀ (ne_of_gt hε)]
+      exact lt_of_lt_of_le hf_bound h1n
+    · -- v(y) → w
+      have hv_bound : ∀ n, |v (y n) - x n| < 1 / (n + 1 : ℝ) := fun n => by simpa [y] using (hf n n).2.1
+      apply Metric.tendsto_atTop.mpr
+      intro ε hε
+      -- Get N1 such that 1/(N1+1) < ε/2
+      obtain ⟨N1, hN1⟩ : ∃ N1 : ℕ, ∀ n ≥ N1, (1 : ℝ) / (n + 1) < ε / 2 := by
+        use Nat.ceil (2 / ε)
+        intro n hn
+        have : (n : ℝ) ≥ Nat.ceil (2 / ε) := by exact_mod_cast hn
+        rw [div_lt_iff₀ (by positivity : (0 : ℝ) < n + 1)]
+        nlinarith [Nat.le_ceil (2 / ε), mul_div_cancel₀ (2 : ℝ) (ne_of_gt hε)]
+      -- Get N2 such that |x n - w| < ε/2 for n ≥ N2
+      rw [Metric.tendsto_atTop] at hx_tendsto
+      obtain ⟨N2, hN2⟩ := hx_tendsto (ε / 2) (by positivity)
+      use max N1 N2
+      intro n hn
+      have h1 : |v (y n) - x n| < ε / 2 := lt_of_lt_of_le (hv_bound n) (le_of_lt (hN1 n (le_trans (le_max_left _ _) hn)))
+      have h2 : |x n - w| < ε / 2 := hN2 n (le_trans (le_max_right _ _) hn)
+      simp only [dist_eq_norm]
+      calc |v (y n) - w| = |(v (y n) - x n) + (x n - w)| := by ring_nf
+        _ ≤ |v (y n) - x n| + |x n - w| := abs_add_le _ _
+        _ < ε / 2 + ε / 2 := add_lt_add h1 h2
+        _ = ε := by ring
+  -- clusterValues is compact
+  have hsub_Icc : clusterValues Θ v μ ⊆ Set.Icc a b := by
+    intro w hw
+    obtain ⟨x, hx_mem, hx_tendsto, hv_tendsto⟩ := hw
+    exact ⟨ge_of_tendsto hv_tendsto (by filter_upwards with n; exact (hbdd (x n) (hx_mem n)).1),
+          le_of_tendsto hv_tendsto (by filter_upwards with n; exact (hbdd (x n) (hx_mem n)).2)⟩
+  have hcompact : IsCompact (clusterValues Θ v μ) := IsCompact.of_isClosed_subset (isCompact_Icc) hclosed hsub_Icc
+  -- Key fact: convexHull ℝ S = Icc (sInf S) (sSup S) for any nonempty bounded set S in ℝ
+  -- because convex = interval for subsets of ℝ
+  set S := clusterValues Θ v μ with hS_def
+  -- sInf and sSup are in S since S is compact and nonempty
+  have hsInf_in : sInf S ∈ S := IsCompact.sInf_mem hcompact hne
+  have hsSup_in : sSup S ∈ S := IsCompact.sSup_mem hcompact hne
+  -- S ⊆ Icc (sInf S) (sSup S)
+  have hS_sub : S ⊆ Set.Icc (sInf S) (sSup S) := by
+    intro x hx
+    exact ⟨csInf_le hbdd' hx, le_csSup hbdd'' hx⟩
+  -- Unfold definitions
+  simp only [thinB, thinBLower, thinBUpper]
+  apply Set.Subset.antisymm
+  · -- convexHull ℝ S ⊆ Icc (sInf S) (sSup S)
+    -- S ⊆ Icc (sInf S) (sSup S) and Icc is convex, so convexHull ⊆ Icc
+    apply convexHull_min hS_sub (convex_Icc (sInf S) (sSup S))
+  · -- Icc (sInf S) (sSup S) ⊆ convexHull ℝ S
+    -- sInf S and sSup S are in S ⊆ convexHull, and convexHull is convex
+    intro x hx
+    have hconv : Convex ℝ (convexHull ℝ S) := convex_convexHull ℝ S
+    exact hconv.segment_subset (subset_convexHull ℝ S hsInf_in) (subset_convexHull ℝ S hsSup_in) (by
+      rw [segment_eq_uIcc]
+      show x ∈ Set.uIcc (sInf S) (sSup S)
+      exact Set.Icc_subset_uIcc hx)
 
 /-- **Common-value intersection law.**  If finitely many beliefs have a common
 payoff `w` in their thin-B values, then the thin-B value at every
