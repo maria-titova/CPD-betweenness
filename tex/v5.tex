@@ -1,0 +1,1087 @@
+\documentclass[11pt]{article}
+\usepackage{amsfonts,amsmath,amsthm,amssymb,mathtools,bbm}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}\pgfplotsset{compat=1.16}
+\usepackage[colorlinks=true,allcolors=black]{hyperref}
+\usepackage[capitalize,nameinlink]{cleveref}
+\usepackage{titletoc}
+\usepackage{comment}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{example}{Example}
+\crefname{assumption}{Assumption}{Assumptions}
+\Crefname{assumption}{Assumption}{Assumptions}
+\crefname{algocf}{Algorithm}{Algorithms}
+\Crefname{algocf}{Algorithm}{Algorithms}
+\crefformat{enumi}{#2#1#3}
+\Crefformat{enumi}{#2#1#3}
+
+%% algorithm stuff
+\usepackage[ruled]{algorithm2e}
+\SetKwIF{If}{ElseIf}{Else}{if}{}{else if}{else}{end if}%
+\SetKwFor{While}{while}{}{end while}%
+\SetKwRepeat{Do}{do}{while}
+\SetKw{KwGoTo}{go to}
+
+\newcommand{\sep}{\,|\,}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\relint}{\operatorname{relint}}
+\newcommand{\aff}{\operatorname{aff}}
+\newcommand{\Msg}{\mathcal{M}}
+\newcommand{\W}{\mathcal{W}}
+\newcommand{\wT}{R}
+\newcommand{\cups}{\cup \ldots \cup}
+\newcommand{\prob}{\operatorname{Pr}}
+\newcommand{\added}[1]{#1}
+\newcommand{\removed}[1]{#1}
+\definecolor{suggestgreen}{RGB}{0,128,33}
+\newcommand{\suggest}[1]{#1}
+\newcommand{\vtent}{v^{\mathrm{tent}}}
+\definecolor{suggestpurple}{RGB}{128,0,160}
+\definecolor{suggestred}{RGB}{180,0,0}
+% Orange marks results not yet formalized in Lean (leanpending); see cpd-v3.tex badges.
+% (Slot previously held the coauthor's parallel betweenness section, staged from v4.tex.)
+\definecolor{suggestorange}{RGB}{204,102,0}
+\newcommand{\reviewnote}[1]{\par\smallskip\noindent\textbf{Review note.} #1\par\smallskip}
+% Final tag for the game-level payoff-degradation condition (Sec. 6.4): PD.
+% Parenthesized only where it is introduced (the definition), bare elsewhere, as
+% with QC/B/M-C. Sufficient conditions (nested subsets) keep distinct full-word
+% names: free disposal, revelation aversion, decomposability. Rename here only.
+\newcommand{\DEG}{\textup{PD}}
+
+%% bibliography using biber / biblatex
+\usepackage[
+            backend = biber,
+            style = philosophy-classic,
+            maxcitenames = 3,
+            scauthorsbib = true,
+            dashed = true,
+            doi = false,
+            isbn = false,
+            url = false,
+            eprint = false,
+            backref = true
+            ]{biblatex}
+\renewbibmacro{in:}{}
+% Citation convention (author-year). Parenthetical cites take a comma before the
+% year, "(Grossman, 1981)"; narrative cites keep the year in parentheses,
+% "Grossman (1981)". The textcite and bibliography contexts have their own
+% nameyeardelim (a space), so only \parencite/\cite pick up the comma below.
+\DeclareDelimFormat[cbx@textcite]{nameyeardelim}{\addspace}
+\DeclareDelimFormat{nameyeardelim}{\addcomma\space}
+% Backreferences: print only the page numbers, "(pp. 1, 3)", dropping the
+% "Cit. on" wording and the trailing period of the philosophy-classic default.
+\renewbibmacro*{pageref}{%
+  \iflistundef{pageref}
+    {}%
+    {\setunit{\addperiod\space}%
+     \printtext[backrefparens]{%
+       \ifnumgreater{\value{pageref}}{1}
+         {pp\adddot\ppspace}%
+         {p\adddot\ppspace}%
+       \printlist[pageref][-\value{listtotal}]{pageref}}\nopunct}}%
+\newcommand\citenop[1]{\citeauthor{#1}, \citeyear{#1}}
+\let\cite\textcite
+\renewcommand*{\bibfont}{\small}
+\addbibresource{biblio.bib}
+
+\begin{document}
+
+\title{Coalition-Proof Disclosure: Betweenness Results\thanks{We thank Nageeb Ali, Aislinn Bohren, Steve Callander, Jeff Ely, Johannes H\"orner, Elliot Lipnowski, Navin Kartik, Jacopo Perego and the audience members at Penn, Penn State, QMUL-City Theory Workshop, Berlin Verifiability in Mechanism and Information Design Workshop, Gerzensee and MPSA. All errors are our own.}}
+\author{Germ\'an Gieczewski\thanks{Princeton University. E-mail: \href{mailto:germang@princeton.edu}{germang@princeton.edu}.} \and Maria Titova\thanks{Vanderbilt University. E-mail: \href{mailto:motitova@gmail.com}{motitova@gmail.com}.}}
+\date{\today}
+\maketitle
+
+\section{Model}\label{sec:model}
+
+There are two players, a sender and a receiver. First, the sender learns his type $\theta \in \Theta$ drawn from a common prior $\mu^0 \in \Delta \Theta$.\footnote{For a finite set $S$, $\Delta S$ denotes the set of probability distributions over $S$.} Then, he sends a message $m \in \Msg$ from a non-empty set $M(\theta)$, where $M: \Theta \to 2^{\Msg} \smallsetminus \{ \varnothing \}$ is the message mapping. Finally, the receiver updates her belief and acts, and payoffs are realized. We employ the belief-based approach and abstract away from the receiver's action. The sender's payoff primitive is a correspondence $V: \Delta \Theta \rightrightarrows \mathbb{R}$; its envelopes are $\overline{v}(\mu) := \max V(\mu)$ and $\underline{v}(\mu) := \min V(\mu)$.
+
+Except where explicitly noted, we assume the following.
+\begin{assumption}\label{assumption:game}
+\begin{enumerate}[label=(A\arabic*), ref=(A\arabic*)]
+    \item \label{A1:finite-sets} $\Theta$ and $\Msg$ are finite.
+    \item \label{A2:full-support} $\mu^0$ has full support.
+    \item \label{A3:message-coverage} $\Msg = \bigcup_{\theta \in \Theta} M(\theta)$.
+    \item \label{A4:V-uhc} $V$ is upper hemicontinuous with non-empty compact interval values.
+\end{enumerate}
+\end{assumption}
+Here, \cref{A3:message-coverage} imposes that every message is feasible for at least one type. Under \cref{A4:V-uhc}, the upper envelope $\overline{v}$ is upper semicontinuous, the lower envelope $\underline{v}$ is lower semicontinuous, and $V(\mu) = [\underline{v}(\mu), \overline{v}(\mu)]$.
+
+Our main object of study is a disclosure game defined as follows.
+\begin{definition}\label{dfn:game}
+    A \emph{disclosure game} $G$ is a tuple $(\Theta,\Msg,M,\mu^0,V)$ satisfying conditions \cref{A1:finite-sets}--\cref{A4:V-uhc}.
+\end{definition}
+
+\paragraph{Strategies.} A sender strategy in game $G$ is a map $\sigma: \Theta \to \Delta \Msg$ such that $\supp \sigma(\cdot \sep \theta) \subseteq M(\theta)$. The \emph{evidence} of $\sigma$ is the set of messages it uses,
+\[
+    X(\sigma) := \bigcup_{\theta \in\Theta} \supp \sigma(\cdot \sep \theta).
+\]
+Message $m$ is \emph{on path} under $\sigma$ if
+\[
+    p_\sigma(m) := \sum_{\theta \in \Theta} \mu^0(\theta) \sigma(m \sep \theta) > 0;
+\]
+since $\mu^0$ has full support by \cref{A2:full-support}, the set of on-path messages is exactly $X(\sigma)$. For $m \in X(\sigma)$, the induced belief $\mu_\sigma(\cdot \sep m) \in \Delta \Theta$ is
+\[
+    \mu_\sigma (\theta \sep m) := \frac{\mu^0(\theta) \sigma(m \sep \theta)}{p_\sigma(m)}.
+\]
+
+\paragraph{Restricted games.} Let $\wT$ be a non-empty subset of $\Theta$. A restricted game on $\wT$ is
+\[
+    G \vert_{\wT} := (\wT, \Msg_{\wT}, M_{\wT}, \mu^0_{\wT}, V_{\wT}),
+\]
+where $\Msg_{\wT} := \bigcup_{\theta \in \wT} M(\theta) \subseteq \Msg$ is the set of all messages available to types in $\wT$; $M_{\wT}(\theta) := M(\theta)$, treated as a subset of $\Msg_{\wT}$; $\mu^0_{\wT} \in \Delta \wT$ is the conditional prior defined as
+\[
+    \mu^0_{\wT}(\theta) := \frac{\mu^0(\theta)}{ \mu^0(\wT) }, \text{ where } \mu^0(\wT) := \sum_{\theta \in \wT} \mu^0(\theta);
+\]
+$V_{\wT}$ is the sender's payoff correspondence restricted to beliefs supported on $\wT$.\footnote{For finite sets $S \subseteq S'$, let $\iota_{S,S'}: \Delta S \to \Delta S'$ denote the zero-extension map from $S$ to $S'$: for each $\nu \in \Delta S$ and $x \in S'$, $\iota_{S,S'}(\nu)(x)=\nu(x)$ if $x \in S$, and $\iota_{S,S'}(\nu)(x)=0$ otherwise. Thus, $V_{\wT} = V \circ \iota_{\wT,\Theta}$.}
+
+Any restricted game $G \vert_{\wT}$ is itself a disclosure game, $G \vert_{\Theta} = G$, and restriction is transitive: for non-empty $\wT' \subseteq \wT \subseteq \Theta$, we have $(G \vert_{\wT})\vert_{\wT '} = G \vert_{\wT '}$ (see \cref{lem:restriction} in the appendix). Every notion and argument below is described for an arbitrary disclosure game $G$ and therefore applies to every restricted game. When we consider a restricted game $G \vert_{\wT}$, we add a subscript $\wT$.
+
+\paragraph{Useful notation.} Given a non-empty set of types $\wT \subseteq \Theta$ and messages $X \subseteq \Msg$, the set of types in $\wT$ that can send at least one message in $X$ is the preimage of $X$ relative to $\wT$:
+\[
+    M^{-1}_{\wT}(X) := \{ \theta \in \wT \sep M(\theta) \cap X \neq \varnothing \},
+\]
+which we will abbreviate as $M^{-1}(X)$ when there is no possibility of confusion. We write
+\[
+    P(m) := M^{-1}(\{ m \})
+\]
+for the set of types that can send message $m$. Note that $P(m)$ is non-empty for each $m \in \Msg$ by \cref{A3:message-coverage}.
+Since $\mu^0$ has full support, $\mu^0_{\wT}$ is supported exactly on $\wT$. We identify distributions on $\wT$, including posterior beliefs induced in $G\vert_{\wT}$, with their zero-extensions to $\Delta\Theta$ whenever they are used in the original game; similarly, we identify distributions on $\Msg_{\wT}$ with their zero-extensions to $\Delta\Msg$.
+
+\section{Coalitions and Partitions}\label{sec:coalitions}
+
+Fix a disclosure game $G = (\Theta,\Msg,M,\mu^0,V)$ and a non-empty set of types $C \subseteq \Theta$. A \emph{coalition strategy on $C$} is a sender strategy $\sigma$ of the restricted game $G \vert_C$. The posterior beliefs induced by $\sigma$ are the beliefs $\mu_\sigma(\cdot \sep m)$ already defined for strategies, computed in the restricted game $G\vert_C$ and zero-extended to $\Delta\Theta$ when used in the original game. Since game restriction is transitive, the coalition-induced beliefs depend only on $C$ and $\sigma$, not on which larger (restricted) game contains $C$.
+
+\begin{definition}\label{dfn:coalition}
+    A \emph{coalition} of a disclosure game $G$ is a triple $(C,\sigma,w)$ such that
+    \begin{enumerate}[label=(C\arabic*), ref=(C\arabic*)]
+    \item \label{C1} $C \subseteq \Theta$ is non-empty;
+    \item \label{C2} $\sigma$ is a coalition strategy on $C$;
+    \item \label{C3} the evidence of $\sigma$ is exclusive to $C$:
+    \[
+        M^{-1}(X(\sigma)) \subseteq C;
+    \]
+    \item \label{C4} every message in $X(\sigma)$ yields the same sender payoff:
+    \[
+        w \in V( \mu_\sigma (\cdot \sep m) ) \text{ for every } m \in X(\sigma).
+    \]
+\end{enumerate}
+\end{definition}
+ A coalition is not merely a subset of types; it bundles the participating types, their evidence strategy, and their common payoff. The coalition payoff is constant across all messages in the coalition's evidence, and hence across messages sent by each coalition type; this is what aligns coalitions with equilibrium payoffs in \cref{sec:pbe}. Note that the reverse inclusion $C \subseteq M^{-1}(X(\sigma))$ holds automatically since each $\theta \in C$ uses messages from $M(\theta) \cap X(\sigma)$; consequently, condition \cref{C3} becomes $M^{-1}(X(\sigma)) = C$ and states that the types participating in the coalition are exactly the types that can produce the coalition's evidence. Finally, every $m \in X(\sigma)$ is on path, so the beliefs in \cref{C4} are well-defined.
+
+\begin{remark}\label{remark:coalitions-exist}
+    Fix a disclosure game $G$ and a message $m \in \Msg$ and let $\sigma^m$ be a coalition strategy on $P(m)$ under which every type that has access to message $m$ sends it with probability one. Then, for every $w \in V( \mu^0_{P(m)})$, the triple $(P(m),\sigma^m,w)$ is a coalition of $G$. In particular, every disclosure game admits a coalition.
+\end{remark}
+\begin{proof}
+    $P(m)$ is non-empty by \cref{A3:message-coverage}; also, $m \in M(\theta)$ for each $\theta \in P(m)$, so $\sigma^m$ is a coalition strategy in $G\vert_{P(m)}$ with $X(\sigma^m) = \{ m \}$. Next, $M^{-1}(X(\sigma^m)) = P(m)$ by the definition of $P(m)$. Finally, the belief induced by $\sigma^m$ is $\mu^0_{P(m)}$ by Bayes' rule. Consequently, $(P(m),\sigma^m,w)$ is a coalition for every $w \in V( \mu^0_{P(m)} )$.
+\end{proof}
+
+\begin{definition}
+    A \emph{partition} of a disclosure game $G$ is a finite sequence
+    \[
+        \Pi = \{ (C_t,\sigma_t,w_t) \}_{t=1}^T
+    \]
+    such that $C_1, \ldots, C_T$ are pairwise disjoint, non-empty, and $\Theta = \bigcup_{t=1}^T C_t$, and, for each $t$, the triple $(C_t,\sigma_t,w_t)$ is a coalition in the residual game $G_t := G\vert_{R_t}$, where $R_t := \bigcup_{s=t}^T C_s$.
+\end{definition}
+
+We refer to $t$ as the \emph{step} index, $C_t$ as the \emph{cell}, and write $X_t := X(\sigma_t)$ for the evidence used at step $t$. For a partition $\Pi$, we call $R_t$ the \emph{residual set} at step $t$. More generally, for any object $Y_R$ attached to the restricted game $G\vert_R$, we abbreviate $Y_{R_t}$ as $Y_t$; thus $G_t=G\vert_{R_t}$, $\Msg_t=\Msg_{R_t}$, and so on.
+%Define the \emph{excluded set} before step $t$ by -- REMOVING BECAUSE UNUSED
+%\[
+% E_t := C_1 \cup \cdots \cup C_{t-1},
+% \qquad
+% E_1 := \varnothing.
+%\]
+%Thus, $R_t$ contains the types still under consideration at step $t$, while $E_t$ contains the types already removed in earlier steps.
+
+All partitions arise from the recursion formalized by the following algorithm:
+\begin{algorithm}[ht!]
+    \caption{Partition Algorithm}\label{alg:partition}
+    Let $t := 1$ and $R_1 := \Theta$\;
+    \While{$R_t \neq \varnothing$}{
+        select a coalition $(C_t,\sigma_t,w_t)$ of $G_t$\;
+        let $R_{t+1} := R_t \smallsetminus C_t$ and $t := t+1$\;
+        \medskip
+    }
+\end{algorithm}
+
+A \emph{run} of the algorithm is one of its possible executions, with one selection per step. The algorithm \emph{terminates} when the type space is exhausted; its \emph{output} is the selected sequence $\{ (C_t,\sigma_t,w_t) \}_{t=1}^T$. At every step of every run, a selection exists by \cref{remark:coalitions-exist}, each step removes a non-empty cell, and each output satisfies the definition of a partition. In particular:
+\begin{remark}\label{remark:partitions-exist}
+    Every disclosure game admits a partition, and every partition has at most $|\Theta|$ steps.
+\end{remark}
+\begin{proof}
+    At each non-empty residual set, \cref{remark:coalitions-exist} applied to the restricted game gives an available coalition. Each selected coalition has a non-empty cell, so each step removes at least one type. Since $\Theta$ is finite, the recursion exhausts the type space after at most $|\Theta|$ steps, and the selected sequence is a partition by construction.
+\end{proof}
+
+By transitivity of game restriction, $G_t\vert_{C_t} = G\vert_{C_t}$, so $\sigma_t$ is simply a coalition strategy on $C_t$ with beliefs $\mu_{\sigma_t}$ that do not depend on the larger game in which the coalition is viewed. Similarly, the common-payoff condition \cref{C4} of the step-$t$ coalition is the same whether viewed in $G_t\vert_{C_t}$, $G\vert_{C_t}$, or $G$. The only condition that uses the residual set $R_t$ is exclusivity \cref{C3}: no type in $R_t \smallsetminus C_t$ can produce evidence in $X_t$. However, types in $C_1 \cups C_{t-1}$ may be able to produce that evidence.
+
+\begin{definition}
+    Given a partition $\Pi = \{ (C_t,\sigma_t,w_t) \}_{t=1}^T$ of $G$, its associated sender strategy $\sigma^{\Pi}: \Theta \to \Delta \Msg$ is obtained by letting every $\theta \in C_t$ use $\sigma_t(\cdot \sep \theta)$ zero-extended to $\Delta \Msg$. A sender strategy is a \emph{partition strategy} if it is associated with some partition.
+\end{definition}
+The associated map $\sigma^\Pi$ is a sender strategy of $G$: if $\theta\in C_t$, then
+\[
+    \supp\sigma^\Pi(\cdot\sep\theta)
+    =
+    \supp\sigma_t(\cdot\sep\theta)
+    \subseteq M(\theta).
+\]
+Moreover, distinct steps use disjoint evidence. If $m\in X_s\cap X_t$ with $s<t$, then some type in $C_t\subseteq R_s$ can send a message in $X_s$, contradicting exclusivity of the step-$s$ coalition in $G_s$. Thus, whenever
+$m\in X_t$, only types in $C_t$ send $m$ under $\sigma^\Pi$; in particular, $m$ is on path, and the belief induced by $\sigma^\Pi$ at $m$ is the same as the belief induced by $\sigma_t$ in $G\vert_{C_t}$, viewed as a belief in $\Delta\Theta$.
+
+\section{Perfect Bayesian Equilibrium}\label{sec:pbe}
+
+Fix a disclosure game $G = (\Theta,\Msg,M,\mu^0,V)$.
+
+\begin{definition}\label{dfn:set-feasible-beliefs}
+    For $m \in \Msg$, the \emph{set of feasible beliefs} is
+    \[
+        \mathcal{F}(m) := \{ \mu_\sigma (\cdot \sep m) \sep \sigma \text{ is a sender strategy of } G \text{ with } m \in X(\sigma) \}.
+    \]
+\end{definition}
+Feasible beliefs are those that arise, via Bayes' rule, under some sender strategy. This is the sense in which $\mathcal{F}(m)$ captures verifiability: a type forced to send $m$ does so under every strategy, so its prior weight can never be discounted relative to the types that send $m$ voluntarily. Each $\mathcal{F}(m)$ is a non-empty compact convex polytope, parametrized explicitly by the mixing weights of the types that can send $m$ (see \cref{lem:feasible-polytope} in the appendix).
+
+\begin{definition}\label{dfn:skeptical-payoff}
+    For a type $\theta \in \Theta$, the \emph{skeptical payoff} is
+    \[
+        \underline{u}(\theta) := \max_{m \in M(\theta)} \min_{\mu \in \mathcal{F}(m)} \underline{v}(\mu).
+    \]
+\end{definition}
+ The skeptical payoff is the payoff type $\theta$ obtains from his best message when, at every message, the receiver holds the least favorable feasible belief and breaks ties against the sender.\footnote{The maximum and minimum are attained because $\underline{v}$ is lower semicontinuous and $\mathcal{F}(m)$ is non-empty and compact (see \cref{lem:feasible-polytope} in the appendix).}
+
+\begin{definition}\label{dfn:PBE}
+    A sender strategy $\sigma: \Theta \to \Delta \Msg$ is a \emph{PBE strategy} if there exist a belief system $\mu: \Msg \to \Delta \Theta$ and a sender payoff function $r: \Msg \to \mathbb{R}$ such that:
+    \begin{enumerate}
+        \item Beliefs are feasible:
+        \[
+            \mu(\cdot \sep m) \in \mathcal{F}(m) \quad \text{ for every } m \in \Msg.
+        \]
+        \item Beliefs are Bayesian on path:
+        \[
+            \mu(\cdot \sep m) = \mu_\sigma(\cdot \sep m) \quad \text{ for every } m \in X(\sigma).
+        \]
+        \item The realized payoff is compatible with the payoff correspondence:
+        \[
+            r(m) \in V(\mu(\cdot \sep m)) \quad \text{for every } m \in \Msg.
+        \]
+        \item The sender is sequentially rational:
+        \[
+            \supp \sigma(\cdot \sep \theta) \subseteq \arg\max_{m \in M(\theta)} r(m) \quad \text{ for every } \theta \in \Theta.
+        \]
+    \end{enumerate}
+    A triple $(\sigma,\mu,r)$ satisfying these four conditions is a \emph{PBE}.
+\end{definition}
+Notably, the first condition requires that even off-path beliefs are rationalizable by some sender strategy. The function $r$ incorporates the receiver's tie-breaking and mixing: after each message $m$, the receiver selects the sender's payoff from the set $V(\mu(\cdot\sep m))$.
+Every disclosure game admits a PBE (see \cref{lem:pbe-existence} in the appendix).
+
+If $(\sigma,\mu,r)$ is a PBE, then sequential rationality makes $r$ constant on $\supp \sigma(\cdot \sep \theta)$, equal to
+\[
+    u(\theta) := \max_{m \in M(\theta)} r(m),
+\]
+which we call the sender's \emph{equilibrium payoff} of type $\theta$ in that PBE. No PBE can yield sender payoff below the skeptical payoff $\underline{u}(\theta)$.
+
+\begin{definition}\label{dfn:IR}
+    A partition $\Pi = \{ (C_t,\sigma_t,w_t) \}_{t=1}^T$ of $G$ is \emph{individually rational (IR)} if
+    \begin{equation}\label{eqn:IR}
+        w_t \geq \underline{u}(\theta) \quad \text{ for every } t \text{ and every } \theta \in C_t. \tag{IR}
+    \end{equation}
+\end{definition}
+Throughout, the skeptical payoff $\underline{u}(\theta)$ is the one computed in $G$ itself.
+
+The PBE characterization below rests on two simple observations.
+First, the partition strategy preserves the beliefs generated by its cells: if $m\in X_t$, then under $\sigma^\Pi$ only types in $C_t$ send $m$, so the Bayes posterior after $m$ is the posterior generated by $\sigma_t$ in $G\vert_{C_t}$, viewed as a belief in $\Delta\Theta$. Second, skeptical payoffs are the relevant off-path benchmark.
+In any PBE, type $\theta$ receives at least $\underline u(\theta)$; conversely, after any unused message, the receiver can select a feasible belief and a compatible payoff that give no type more than its skeptical deviation value.
+\begin{proposition}\label{prop:pbe-characterization}
+    A sender strategy $\sigma$ is a PBE strategy if and only if $\sigma$ is associated with an individually rational partition $\Pi = \{ (C_t,\sigma_t,w_t) \}_{t=1}^T$ with $w_1 \geq \ldots \geq w_T$.
+    Furthermore, every PBE strategy is associated with an individually rational partition with strictly decreasing payoffs $w_1 > \ldots > w_T$.
+\end{proposition}
+
+\cref{prop:pbe-characterization} reduces equilibrium to a partition problem. In any PBE, types can be grouped by their equilibrium payoff, and these groups form the cells of a partition ordered from high payoff to low payoff. Conversely, any IR partition with non-increasing payoffs can be supported as a PBE: on-path messages receive the cell payoff, while off-path messages are assigned skeptical feasible payoffs. A type cannot profitably deviate off path because its cell payoff is at least its skeptical payoff; it cannot profitably deviate to earlier evidence because that evidence is unavailable in the relevant residual game; and it cannot profitably deviate to later evidence because later cells receive weakly lower payoffs.
+
+Call a partition that is IR with non-increasing payoffs a \emph{PBE partition}. The following algorithm is the partition algorithm with the PBE restrictions imposed at each step: the lower bound enforces IR on the residual set, while the upper bound enforces non-increasing payoffs.
+
+\begin{algorithm}[ht!]
+    \caption{PBE Partition Algorithm}\label{alg:pbe-partition}
+    Let $t := 1$, $R_1 := \Theta$, and $w_0 := \infty$\;
+    \While{$R_t \neq \varnothing$}{
+        select a coalition $(C_t,\sigma_t,w_t)$ of $G_t$ with
+        $w_t \in \left[\max_{\theta\in R_t}\underline{u}(\theta),\,w_{t-1}\right]$\;
+        \textbf{halt} with no output if there is none\;
+        let $R_{t+1} := R_t \smallsetminus C_t$ and $t := t+1$\;
+        \medskip
+    }
+\end{algorithm}
+
+Note that \cref{alg:pbe-partition} uses a stronger (but ultimately equivalent) version of IR: at step $t$, it imposes $w_t\geq\max_{\theta\in R_t}\underline{u}(\theta)$ rather than only $w_t\geq\max_{\theta\in C_t}\underline{u}(\theta)$.
+For partitions with non-increasing payoffs, this stronger condition does not change the set of completed partitions.
+It is also easier to work with recursively: the admissible interval $\bigl[\max_{\theta\in R_t}\underline{u}(\theta),\,w_{t-1}\bigr]$ depends only on $R_t$ and $w_{t-1}$, not on which candidate coalition $(C_t,\sigma_t,w_t)$ is being considered.
+\begin{lemma}\label{lem:strong-IR}
+    Let $\Pi=\{(C_t,\sigma_t,w_t)\}_{t=1}^T$ be a partition of $G$ with $w_1\geq\cdots\geq w_T$. Then $\Pi$ is IR if and only if
+    \[
+        w_t\geq \max_{\theta\in R_t}\underline{u}(\theta)
+        \qquad\text{for every }t.
+    \]
+\end{lemma}
+\begin{proof}
+    The displayed condition implies IR because $C_t\subseteq R_t$. Conversely, if $\Pi$ is IR and $\theta\in R_t$, then $\theta\in C_s$ for some $s\geq t$, so $\underline{u}(\theta)\leq w_s\leq w_t$ by IR and non-increasing payoffs. Taking the maximum over $\theta\in R_t$ gives the displayed condition.
+\end{proof}
+
+Unlike the unrestricted partition algorithm, this algorithm may halt because no admissible coalition payoff is available at some residual set. When it terminates, its output is exactly a PBE partition. Since a PBE exists (see \cref{lem:pbe-existence} in the appendix), \cref{prop:pbe-characterization} associates it with a PBE partition $\Pi$ with strictly decreasing payoffs. By \cref{lem:strong-IR}, $w_t\in\bigl[\max_{\theta\in R_t}\underline{u}(\theta),\,w_{t-1}\bigr]$ for every $t$, so $\Pi$ is the output of a run of \cref{alg:pbe-partition}. Hence at least one run terminates.
+
+\section{Coalition-Proof PBE}\label{sec:cppbe}
+
+Fix a disclosure game $G=(\Theta,\Msg,M,\mu^0,V)$. For a partition $\Pi=\{(C_t,\sigma_t,w_t)\}_{t=1}^T$ of $G$ and $\widetilde w\in\mathbb{R}$, let
+\[
+    \Theta(\widetilde w)
+    :=
+    \bigcup_{t\,:\,w_t<\widetilde w} C_t
+\]
+denote the set of types whose partition payoff is strictly below $\widetilde w$.
+
+\begin{definition}\label{dfn:blocking}
+    Let $\Pi$ be a partition of $G$.
+    \begin{enumerate}
+        \item[(i)] $(\widetilde C,\widetilde\sigma,\widetilde w)$ is a
+        \emph{blocking coalition} of $\Pi$ if
+        $\Theta(\widetilde w)\neq\varnothing$ and
+        $(\widetilde C,\widetilde\sigma,\widetilde w)$ is a coalition of
+        the restricted game $G\vert_{\Theta(\widetilde w)}$.
+        \item[(ii)] $\Pi$ is \emph{coalition-proof} if it admits no
+        blocking coalition.
+    \end{enumerate}
+    A \emph{coalition-proof PBE partition} is a PBE partition that is
+    coalition-proof. A sender strategy is a \emph{coalition-proof PBE
+    strategy} if it is associated with some coalition-proof PBE partition.
+\end{definition}
+
+Because the payoff correspondence $V$ may be multi-valued, the realized payoffs $w_t$ are part of the equilibrium outcome rather than pinned down by the strategy; coalition proofness is accordingly a property of the partition.
+
+ A PBE is a triple $(\sigma,\mu,r)$; its partition records the sender types' equilibrium payoffs and the evidence used by each payoff cell; and the associated sender strategy is obtained after the payoff selection has been suppressed. When $V$ is multi-valued, one sender strategy may be associated with more than one partition, so the statement that a strategy is coalition-proof is existential: it means that the strategy has at least one coalition-proof partition and payoff selection. Accordingly, uniqueness claims below concern cells and payoffs unless they explicitly state uniqueness of strategies, beliefs, or receiver responses.
+
+A blocking coalition is an announced deviation: the types in $\widetilde C$ declare that they will switch to strategy $\widetilde\sigma$, and if the receiver believes the announcement and updates accordingly after evidence in $X(\widetilde\sigma)$, the deviators obtain payoff $\widetilde w$.
+The restriction to $G\vert_{\Theta(\widetilde w)}$ captures credibility: only types whose partition payoff is below $\widetilde w$ would want to join or imitate the announcement.
+Among those types, the announced evidence must be exclusive to the deviators and yield the common payoff $\widetilde w$.
+
+Unlike other belief-based refinements of PBE, our notion of coalition proofness allows the announced deviation to involve multiple messages at once, since it may be a mixed strategy. Furthermore, the announced deviation may include messages that are already on the equilibrium path.
+
+The greedy selection defined below picks, at each step, the largest available coalition payoff, so we introduce notation for the payoffs that coalitions of a restricted game can attain. For any non-empty $R\subseteq\Theta$, write
+\[
+    \W_R
+    :=
+    \{w\in\mathbb{R}\sep
+    (C,\sigma,w)\text{ is a coalition of }G\vert_R
+    \text{ for some }C\subseteq R\},
+\]
+the set of coalition payoffs attainable in the restricted game $G\vert_R$. The following lemma guarantees that the maxima appearing below are attained whenever they are taken over a non-empty set.
+
+\begin{lemma}\label{lem:coalition-compact}
+    For every non-empty $R\subseteq\Theta$, the coalition payoff set $\W_R$ is non-empty and compact.
+\end{lemma}
+
+\begin{definition}\label{dfn:greedy}
+    A partition $\Pi=\{(C_t,\sigma_t,w_t)\}_{t=1}^T$ of $G$ is
+    \emph{greedy} if, for every $t$ (with $w_0:=\infty$),
+    \[
+        w_t
+        =
+        \max\Bigl(
+        \W_t
+        \cap
+        \bigl[\max_{\theta\in R_t}\underline{u}(\theta),\,
+        w_{t-1}\bigr]
+        \Bigr),
+    \]
+    where $\W_t$ is the coalition payoff set of $G_t$.
+\end{definition}
+
+The definition is implemented by the same recursion as the PBE partition algorithm, with one stronger selection rule: at each residual game $G_t$, the payoff must still satisfy the PBE bounds $\max_{\theta\in R_t}\underline{u}(\theta)\leq w_t\leq w_{t-1}$, and among the payoffs in $\W_t$ satisfying them it must be the largest. If no such payoff exists, the run halts.
+
+\begin{algorithm}[ht!]
+    \caption{Greedy Partition Algorithm}\label{alg:greedy-partition}
+    Let $t := 1$, $R_1 := \Theta$, and $w_0 := \infty$\;
+    \While{$R_t \neq \varnothing$}{
+        select a coalition $(C_t,\sigma_t,w_t)$ of $G_t$ with
+        $w_t=\max\bigl(\W_t\cap\bigl[\max_{\theta\in R_t}\underline{u}(\theta),\,w_{t-1}\bigr]\bigr)$\;
+        \textbf{halt} with no output if there is none\;
+        let $R_{t+1} := R_t \smallsetminus C_t$ and $t := t+1$\;
+        \medskip
+    }
+\end{algorithm}
+
+\begin{proposition}\label{prop:cppbe-characterization}
+    A partition of $G$ is a coalition-proof PBE partition if and only if it is greedy. Consequently, a sender strategy is a coalition-proof PBE strategy if and only if it is associated with some greedy partition.
+\end{proposition}
+
+\cref{prop:cppbe-characterization} says that the no-blocking condition is exactly the greedy selection rule.
+Suppose that, at step $t$, the residual game $G_t$ contains a coalition that can do better than the payoff actually assigned at that step, without exceeding the payoff of the previous cell.
+Such a payoff is attractive exactly to the types still in the residual set: earlier cells already receive at least as much, while every type in $R_t$ receives weakly less than $w_t$ and hence strictly less than the proposed payoff.
+ That coalition is therefore a credible announced deviation, hence a blocking coalition.
+Greediness rules out precisely these deviations by assigning, at each residual game, the largest coalition payoff compatible with the IR lower bound and the previous-cell payoff cap.
+
+ \cref{prop:cppbe-characterization} is a characterization, not an existence result: every run of \cref{alg:greedy-partition} may halt, in which case $G$ has no coalition-proof PBE.
+Sufficient conditions for existence are the subject of \cref{sec:existence}.
+
+
+\section{Existence of Coalition-Proof PBE}\label{sec:existence}
+
+Fix a disclosure game $G=(\Theta,\Msg,M,\mu^0,V)$.
+
+By \cref{prop:cppbe-characterization}, a coalition-proof PBE exists if and only if some run of \cref{alg:greedy-partition} completes. This isolated version retains the betweenness route to existence and the definitions and results on which it depends.
+
+Some of our results establish essential uniqueness of coalition-proof PBE under the following genericity condition, which requires distinct type sets to yield distinct pooling payoffs $\overline{v}(\mu^0_C)$\footnote{Each existence result restricts the upper envelope by a structural condition such as quasiconcavity or betweenness. Functions of either kind are not closed under addition, hence do not form a vector space, so a measure-theoretic notion of genericity such as prevalence \parencite{huntsaueryorke} does not apply. We therefore use injectivity, which is topologically generic: within each such class, under the $\|\cdot\|_\infty$ metric, the envelopes with $C\mapsto\overline{v}(\mu^0_C)$ injective form an open dense set, since $\Theta$ is finite.}:
+\begin{definition}\label{dfn:generic}
+    Game $G$ is \emph{generic} if the map $C\mapsto\overline{v}(\mu^0_C)$ is injective on non-empty subsets $C\subseteq\Theta$.
+\end{definition}
+
+\subsection{Betweenness}\label{sec:existence-betweenness}
+
+We next strengthen the payoff restriction and, in return, impose no condition on the message mapping. The strengthened restriction is betweenness: the payoff of a mixture lies between the endpoint payoffs, or equivalently all upper and lower level sets of $v$ are convex. It applies to a single-valued payoff, so throughout this subsection $V=\{v\}$; the two envelopes coincide, $\overline v=\underline v=v$, and $v$ is continuous by \cref{A4:V-uhc}. We impose single-valuedness because the disclosure papers whose existence arguments use betweenness, \textcite{hart2017} and \textcite{bertomeucianciaruso}, both work with a real-valued payoff.\footnote{\textcite{hart2017} give a microfoundation: betweenness holds whenever the receiver's expected utility is single-peaked in her action at every belief, and for $|\Theta|=2$ it reduces to monotonicity of $v$ along the simplex. Their single-valued payoff is the receiver's single-peaked reward as a function of the belief; \textcite{bertomeucianciaruso} impose their convexity condition (CV), requiring the value of a merged belief to lie between the worst and best values of its components, on a real-valued payoff.}
+
+\begin{definition}\label{dfn:B}
+    The payoff satisfies \emph{betweenness} (B) if $V=\{v\}$ and $v$ is both quasiconcave and quasiconvex: for all $\mu,\mu'\in\Delta\Theta$ and $\lambda\in(0,1)$,
+    \[
+        \min\{v(\mu),v(\mu')\}
+        \leq
+        v(\lambda\mu+(1-\lambda)\mu')
+        \leq
+        \max\{v(\mu),v(\mu')\}.
+    \]
+    It satisfies \emph{strict betweenness} (B$^*$) if, in addition, both inequalities are strict whenever $v(\mu)\neq v(\mu')$.
+\end{definition}
+
+Like QC, betweenness is inherited by every restricted game. Our first result shows that every coalition attains the pooling value of its type set, even though a coalition may have to spread over several messages when no single message is available to all of its types.
+
+\begin{lemma}\label{lem:value-id}
+    Assume B. Then every coalition $(C,\sigma,w)$ of $G$ satisfies $w=v(\mu^0_C)$.
+\end{lemma}
+
+\begin{proof}
+In $G\vert_C$, the prior is the convex combination
+\[
+    \mu^0_C=\sum_{m\in X(\sigma)}p_\sigma(m)\,\mu_\sigma(\cdot\sep m),
+\]
+with positive weights on the on-path posteriors. By \cref{C4} and single-valuedness, each posterior in this combination has value $w$. Applying B to that convex combination yields $w\leq v(\mu^0_C)\leq w$.
+\end{proof}
+
+Since betweenness is inherited by restricted games, \cref{lem:value-id} applies in every restricted game $G\vert_R$. In a restricted game, exclusivity \cref{C3} and its converse imply that every coalition type set is a relative preimage $M^{-1}_R(X)$. Thus any attainable payoff is the pooling value of such a preimage. For every non-empty $R\subseteq\Theta$, write
+\[
+    v^*(R):=\max_{\varnothing\neq X\subseteq\Msg_R} v\bigl(\mu^0_{M^{-1}_R(X)}\bigr)
+\]
+for the largest pooling value generated by a non-empty set of messages in the restricted game.
+The maximum is over finitely many sets, and each relative preimage in the maximum is non-empty because every message in $\Msg_R$ is available to some type in $R$.
+
+The bound $\max\W_R\leq v^*(R)$ is immediate: every coalition $(C,\sigma,w)$ of $G\vert_R$ has type set $C=M^{-1}_R(X(\sigma))$, so \cref{lem:value-id} gives $w=v(\mu^0_C)\leq v^*(R)$. The content of the following lemma is that this bound is attained.
+
+\begin{lemma}\label{lem:btw-attained}
+    Assume B. For every non-empty $R\subseteq\Theta$, the game $G\vert_R$ admits a coalition paying $v^*(R)$; consequently $\max\W_R=v^*(R)$.
+\end{lemma}
+
+The proof runs the equilibrium machinery inside an auxiliary game whose message space is a maximizing evidence set $X^*$: that game has a PBE partition; quasiconvexity forces its top cell to pay at least $v^*(R)$; and the top cell is itself a coalition of $G\vert_R$.
+
+Recall that showing existence of coalition-proof PBE amounts to showing that some run of \cref{alg:greedy-partition} completes. That algorithm removes a highest-paying coalition from the residual game $G_t$ at each step; by \cref{lem:btw-attained}, the highest coalition payoff available in $G_t$ is $\max\W_t=v^*(R_t)$. For a run to halt, maximum coalition payoffs must rise at some step: the residual game $G_{t+1}$ must admit a coalition paying more than the one removed from $G_t$. The next lemma shows that, if this happens, the union of the type sets of the two coalitions is exactly the preimage of their combined evidence, and its value equals the old maximum.
+
+\begin{lemma}\label{lem:btw-merging}
+    Assume B. Let $R\subseteq\Theta$ be non-empty, let $(C,\sigma,w)$ be a coalition of $G\vert_R$ with $w=\max\W_R$, and suppose $R':=R\smallsetminus C$ is non-empty and $G\vert_{R'}$ admits a coalition $(C',\sigma',w')$ with $w'>w$. Then
+    \[
+        M^{-1}_R\bigl(X(\sigma)\cup X(\sigma')\bigr)=C\cup C'
+        \qquad\text{and}\qquad
+        v(\mu^0_{C\cup C'})=w.
+    \]
+    If in addition B$^*$ holds, no such configuration exists, so
+    \[
+        \max\W_{R\smallsetminus C}\leq\max\W_R
+    \]
+    whenever a coalition with type set $C$ attains $\max\W_R$ and $R\smallsetminus C\neq\varnothing$.
+\end{lemma}
+
+Either strict betweenness or genericity rules this configuration out: under B$^*$ by the last part of \cref{lem:btw-merging}, and under genericity because $C\cup C'$ would be a type set distinct from $C$ but with the same value $w$, which \cref{dfn:generic} forbids. In either case, removing a payoff-maximal coalition never raises the residual maximum, so the greedy recursion never stalls.
+
+\begin{theorem}\label{thm:two}
+    Assume B, and suppose that B$^*$ holds or that $G$ is generic. Then:
+    \begin{enumerate}
+        \item[(i)] No run of \cref{alg:greedy-partition} halts, and every run produces a coalition-proof PBE partition, so a coalition-proof PBE exists.
+        \item[(ii)] A partition of $G$ is a coalition-proof PBE partition if and only if $w_t=\max\W_t$ and $w_t\leq w_{t-1}$ for every $t$, where $w_0:=\infty$.
+    \end{enumerate}
+    If, in addition, $G$ is generic, then the coalition-proof PBE partition is essentially unique: any two coalition-proof PBE partitions of $G$ have the same length $T$, the same cells $C_1,\dots,C_T$, and the same payoffs $w_1,\dots,w_T$.
+\end{theorem}
+
+\Cref{thm:two} left open plain betweenness without genericity, where the argument is more delicate. The equality case of \cref{lem:btw-merging} can now occur, so the choice among payoff-maximal coalitions matters: removing one may leave a strictly better coalition in the residual game, which raises the residual maximum and stalls the greedy recursion. To rule this out, at each step we remove a payoff-maximal coalition whose induced prior is largest under a suitable ranking of the level set $\{v=y\}$ to which it belongs; the ranking is built so that a rise in the residual maximum would expose a higher-ranked payoff-maximal coalition one step earlier, contradicting the selection. The construction of this ordering (\cref{lem:btw-order}) and the full argument are deferred to the appendix.
+
+\begin{theorem}\label{thm:two-B}
+    Assume B. Then a coalition-proof PBE exists.
+\end{theorem}
+
+\clearpage
+\printbibliography
+
+\clearpage
+\appendix
+\numberwithin{theorem}{section}
+\numberwithin{proposition}{section}
+\numberwithin{lemma}{section}
+\numberwithin{corollary}{section}
+\numberwithin{definition}{section}
+\numberwithin{remark}{section}
+
+\section*{Contents of the Appendix}
+\startcontents[appendix]
+\printcontents[appendix]{}{1}{}
+\medskip
+
+\section{Proofs for \cref{sec:pbe}}
+
+\subsection*{Proof of \cref{prop:pbe-characterization}}
+Suppose first that $\sigma$ is supported as a PBE by $(\mu,r)$. Let $u(\theta) = \max_{m \in M(\theta)} r(m)$ be the associated equilibrium-payoff function defined above, and list its distinct values as $w_1>\cdots>w_T$. Define
+    \[
+        C_t:=\{\theta\in\Theta \sep u(\theta) = w_t\},
+        \qquad
+        \sigma_t:=\sigma|_{C_t},
+        \qquad
+        R_t:=\bigcup_{s=t}^T C_s.
+    \]
+    We claim that $\Pi=\{(C_t,\sigma_t,w_t)\}_{t=1}^T$ is a partition.
+    First, notice that the cells are non-empty, disjoint, and cover $\Theta$, and $\sigma_t$ is a coalition strategy on $C_t$. It remains to show that $(C_t,\sigma_t,w_t)$ is a coalition of $G_t$, i.e., it satisfies conditions \cref{C3} and \cref{C4}, for each $t$.
+    For \cref{C3}, note that every $m\in X_t$ satisfies $r(m)=w_t$, because it is used on path by a type in $C_t$.
+    If some $\theta\in R_t$ can send a message $m\in X_t$, then $u(\theta)\geq r(m)=w_t$.
+    But every type in $R_t=\bigcup_{s\geq t}C_s$ has equilibrium payoff at most $w_t$.
+    Hence $u(\theta)=w_t$, so $\theta\in C_t$.
+    Therefore $M^{-1}_t(X_t)\subseteq C_t$.
+    For \cref{C4}, fix $m \in X_t$. Any type that sends $m\in X_t$ under $\sigma$ must have payoff $w_t$, and hence belongs to $C_t$. Thus the on-path posterior $\mu_\sigma(\cdot\sep m)$ is the posterior generated by $\sigma_t$ in $G\vert_{C_t}$. Since PBE beliefs are Bayesian on path and $r(m)\in V(\mu(\cdot\sep m))$, we get $w_t=r(m)\in V(\mu_{\sigma_t}(\cdot\sep m))$. Therefore each $(C_t,\sigma_t,w_t)$ is a coalition in $G_t$, so $\Pi$ is a partition with strictly decreasing payoffs.
+
+    It remains only to check IR. For every message $m$, $\mu(\cdot\sep m)\in \mathcal{F}(m)$ and
+    $r(m)\in V(\mu(\cdot\sep m))$, so $r(m)\geq \min_{\nu\in \mathcal{F}(m)}\underline v(\nu)$. Maximizing
+    over $m\in M(\theta)$ gives $u(\theta)\geq\underline u(\theta)$. Hence $w_t\geq\underline u(\theta)$ for every $\theta\in C_t$.
+
+    Conversely, let $\Pi=\{(C_t,\sigma_t,w_t)\}_{t=1}^T$ be an IR partition with $w_1\geq\cdots\geq w_T$, and let
+    $\sigma=\sigma^\Pi$. For each off-path message $m\notin X(\sigma)$, choose $\nu_m\in \mathcal{F}(m)$ attaining
+    $\min_{\nu\in \mathcal{F}(m)}\underline v(\nu)$ and set $a_m:=\underline v(\nu_m)$. Then $a_m\in V(\nu_m)$ and
+    $a_m\leq \underline u(\theta)$ for every $\theta$ with $m\in M(\theta)$.
+
+    Define beliefs and payoffs by
+    \[
+        \mu(\cdot\sep m)=
+        \begin{cases}
+            \mu_\sigma(\cdot\sep m), & m\in X_t \text{ for some }t,\\
+            \nu_m, & m\notin X(\sigma),
+        \end{cases}
+        \qquad
+        r(m)=
+        \begin{cases}
+            w_t, & m\in X_t \text{ for some }t,\\
+            a_m, & m\notin X(\sigma).
+        \end{cases}
+    \]
+    The constructed belief system $\mu$ and payoff function $r$ therefore satisfy the first three requirements in the definition of $\sigma$ being a PBE strategy; it remains only to show that the sender is sequentially rational.
+    Fix $\theta \in C_t$.
+    Every message in $X_t$, and hence every message used by $\theta$ under $\sigma$, yields payoff $w_t$.
+    Every message in any earlier evidence set $X_s$, $s<t$, is not available to $\theta$, since that would violate evidence exclusivity \cref{C3} of the step-$s$ coalition.
+    Every message in any later evidence set $X_s$, $s>t$, yields payoff $w_s \leq w_t$.
+    Every off-path feasible message yields payoff at most $\underline{u}(\theta) \leq w_t$.
+    Thus, type $\theta$ does not have profitable deviations and $\sigma$ is a PBE strategy. \qed
+
+\section{Proofs for \cref{sec:cppbe}}
+
+
+\subsection*{Proof of \cref{lem:coalition-compact}}
+Since $G\vert_R$ is itself a disclosure game and $\W_R$ is its set of coalition payoffs, it suffices to prove the claim for $R=\Theta$; write $\W:=\W_\Theta$. Non-emptiness is \cref{remark:coalitions-exist}.
+
+For each non-empty $C\subseteq\Theta$, let $\mathrm{Coal}(C):=\{(\sigma,w)\sep(C,\sigma,w)\text{ is a coalition of }G\}$. We show that every $\mathrm{Coal}(C)$ is compact. Granting this, its image $\W(C)$ under the continuous projection $(\sigma,w)\mapsto w$ is compact, and $\W=\bigcup_C\W(C)$ is a finite union of compact sets, hence compact.
+
+Fix $C$. The coalition strategies on $C$ form the compact set $S:=\prod_{\theta\in C}\Delta M(\theta)$, and every coalition payoff lies in the interval $I:=\bigl[\min_{\Delta\Theta}\underline v,\,\max_{\Delta\Theta}\overline v\bigr]$, which is finite because, by \cref{A4:V-uhc}, $\underline v$ is lower semicontinuous and $\overline v$ upper semicontinuous on the compact set $\Delta\Theta$. Thus $\mathrm{Coal}(C)$ is a subset of the compact set $S\times I$, and it suffices to show that it is closed.
+
+Let $(\sigma_k,w_k)\in\mathrm{Coal}(C)$ with $(\sigma_k,w_k)\to(\sigma,w)$. The evidence sets $X(\sigma_k)$ take finitely many values, so after discarding all but infinitely many terms, which leaves the limit unchanged, $X(\sigma_k)=X$ for all $k$. We claim $(C,\sigma,w)$ is a coalition of $G$. First, $\sigma$ is again a coalition strategy on $C$, since the constraints defining $S$ are preserved in the limit. Second, $X(\sigma)\subseteq X$: if $\sigma(m\sep\theta)>0$, then $\sigma_k(m\sep\theta)>0$ for all large $k$, so $m\in X(\sigma_k)=X$. Each $(C,\sigma_k,w_k)$ satisfies exclusivity \cref{C3}, so $M^{-1}(X)=M^{-1}(X(\sigma_k))\subseteq C$; with $X(\sigma)\subseteq X$, this gives $M^{-1}(X(\sigma))\subseteq C$, which is \cref{C3} for $(C,\sigma,w)$.
+
+Third, fix $m\in X(\sigma)$. The denominator $p_\sigma(m)=\sum_{\theta\in C}\mu^0_C(\theta)\,\sigma(m\sep\theta)$ is positive and $p_{\sigma_k}(m)\to p_\sigma(m)$, so the induced beliefs converge, $\mu_{\sigma_k}(\cdot\sep m)\to\mu_\sigma(\cdot\sep m)$. Since $m\in X(\sigma)\subseteq X=X(\sigma_k)$, condition \cref{C4} for $(C,\sigma_k,w_k)$ gives $\underline v(\mu_{\sigma_k}(\cdot\sep m))\leq w_k\leq\overline v(\mu_{\sigma_k}(\cdot\sep m))$. Letting $k\to\infty$, the semicontinuity of the envelopes from \cref{A4:V-uhc} yields $w\in V(\mu_\sigma(\cdot\sep m))$. As $m\in X(\sigma)$ was arbitrary, $(C,\sigma,w)$ is a coalition of $G$, so $(\sigma,w)\in\mathrm{Coal}(C)$. Hence $\mathrm{Coal}(C)$ is a closed subset of $S\times I$, and therefore compact. Messages in $X\smallsetminus X(\sigma)$ simply drop out of the limit coalition, since the common-payoff condition is required only on the evidence actually used.
+\qed
+
+\subsection*{Proof of \cref{prop:cppbe-characterization}}
+($\Leftarrow$) Let $\Pi$ be greedy. By \cref{dfn:greedy}, $w_t$ belongs to $\W_t\cap[\max_{\theta\in R_t}\underline{u}(\theta),w_{t-1}]$ for every $t$. Thus $w_t\leq w_{t-1}$ and $w_t\geq\max_{\theta\in R_t}\underline{u}(\theta)$ for every $t$, so $\Pi$ has non-increasing payoffs and is IR by \cref{lem:strong-IR}. Hence $\Pi$ is a PBE partition.
+
+Suppose, toward a contradiction, that $(\widetilde C,\widetilde\sigma,\widetilde w)$ is a blocking coalition of $\Pi$. Let
+\[
+    \tau:=\min\{t\sep w_t<\widetilde w\}.
+\]
+This index exists because $\Theta(\widetilde w)\neq\varnothing$. Since payoffs are non-increasing, the cells with payoff strictly below $\widetilde w$ are exactly $C_\tau,\ldots,C_T$: for $s<\tau$, $w_s\geq\widetilde w$ by minimality of $\tau$, while for $s\geq\tau$, $w_s\leq w_\tau<\widetilde w$. Hence $\Theta(\widetilde w)=R_\tau$. By the definition of blocking, $(\widetilde C,\widetilde\sigma,\widetilde w)$ is a coalition of $G\vert_{\Theta(\widetilde w)}=G_\tau$, so $\widetilde w\in\W_\tau$. Moreover, $\widetilde w>w_\tau\geq\max_{\theta\in R_\tau}\underline{u}(\theta)$, and $\widetilde w\leq w_{\tau-1}$ by minimality of $\tau$ (with $w_0=\infty$ if $\tau=1$). Thus
+\[
+    \widetilde w
+    \in
+    \W_\tau
+    \cap
+    \bigl[
+        \max_{\theta\in R_\tau}\underline{u}(\theta),\,
+        w_{\tau-1}
+    \bigr],
+    \qquad
+    \widetilde w>w_\tau,
+\]
+contradicting \cref{dfn:greedy}, which makes $w_\tau$ the maximum of this set.
+
+($\Rightarrow$) Let $\Pi$ be a coalition-proof PBE partition, and fix $t$. Since $(C_t,\sigma_t,w_t)$ is a coalition of $G_t$, we have $w_t\in\W_t$. Since $\Pi$ is a PBE partition, its payoffs are non-increasing and it is IR; by \cref{lem:strong-IR}, $w_t\geq\max_{\theta\in R_t}\underline{u}(\theta)$, and non-increasing payoffs give $w_t\leq w_{t-1}$. Hence $w_t$ belongs to the greedy constraint set at step $t$.
+
+Suppose $w_t$ is not the maximum of that set. Then there is a payoff $w\in\W_t$ such that
+\[
+    w
+    \in
+    \W_t
+    \cap
+    \bigl[
+        \max_{\theta\in R_t}\underline{u}(\theta),\,
+        w_{t-1}
+    \bigr],
+    \qquad
+    w>w_t.
+\]
+Since $w\in\W_t$, there exists a coalition $(C,\sigma,w)$ of $G_t$. For every $s<t$, non-increasing payoffs give $w_s\geq w_{t-1}\geq w$; for every $s\geq t$, they give $w_s\leq w_t<w$. Therefore $\Theta(w)=R_t\neq\varnothing$. Since $(C,\sigma,w)$ is a coalition of $G_t=G\vert_{\Theta(w)}$, it is a blocking coalition of $\Pi$, contradicting coalition proofness. Thus $w_t$ is the maximum of the greedy constraint set at every step, and $\Pi$ is greedy.
+
+The strategy-level statement follows directly from the definitions: a strategy is a coalition-proof PBE strategy if and only if it is associated with some coalition-proof PBE partition, and the partition equivalence just proved is exactly equivalence with being associated with some greedy partition. \qed
+
+\section{Coalition-Optimal Equilibrium Partitions}\label{sec:coe}
+
+This section develops an auxiliary strengthening of greedy partitions which we use to prove existence theorems.
+
+Call a sequence $\{(C_s,\sigma_s,w_s)\}_{s=1}^{t-1}$ (possibly empty) a \emph{prefix} with residual $R_t$ if, setting $R_1:=\Theta$ and $R_{s+1}:=R_s\smallsetminus C_s$, each $(C_s,\sigma_s,w_s)$ is a coalition of $G_s$ and $R_t\neq\varnothing$. Initial segments of partitions are prefixes; conversely, a prefix is an unfinished run of \cref{alg:partition}. Call such a prefix \emph{greedy} if $w_s=\max\bigl(\W_s\cap[\max_{\theta\in R_s}\underline{u}(\theta),\,w_{s-1}]\bigr)$ at every step $s$ (with $w_0:=\infty$). Every initial segment of a greedy partition is a greedy prefix, and an unfinished run of \cref{alg:greedy-partition} is exactly a greedy prefix.
+
+For $m\in\Msg$, let $F(m):=\{\theta\in\Theta\sep M(\theta)=\{m\}\}$ be the set of types \emph{forced} to send $m$.
+
+\begin{lemma}\label{lem:remaining-games}
+    Let $R_t$ be the residual of a prefix. Then:
+    \begin{enumerate}
+        \item[(i)] for every $m\in\Msg_t$, every type forced to send $m$ remains: $F(m)\subseteq R_t$;
+        \item[(ii)] for every $m\in\Msg_t$, the conditional prior on the residual senders of $m$ is feasible: $\mu^0_{P(m)\cap R_t}\in\mathcal{F}(m)$;
+        \item[(iii)] $\W_t$ is non-empty and compact, and
+        \[
+            \max\W_t\geq\max_{\theta\in R_t}\underline{u}(\theta).
+        \]
+    \end{enumerate}
+\end{lemma}
+\begin{proof}
+    (i) Suppose $\theta_F\in F(m)\cap C_s$ for some $s<t$. Since $M(\theta_F)=\{m\}$ and $\varnothing\neq\supp\sigma_s(\cdot\sep\theta_F)\subseteq M(\theta_F)$, we have $m\in X_s:=X(\sigma_s)$. As $m\in\Msg_t$, some $\theta\in R_t$ has $m\in M(\theta)$; then $\theta\in R_s$ and $m\in M(\theta)\cap X_s$ give $\theta\in M^{-1}_s(X_s)\subseteq C_s$ by exclusivity at step $s$, contradicting $\theta\in R_t\subseteq R_{s+1}=R_s\smallsetminus C_s$.
+
+    (ii) Write $P_t:=P(m)\cap R_t$, which is non-empty since $m\in\Msg_t$ and contains $F(m)$ by (i). Let $\sigma$ be a strategy under which every type in $P_t$ sends $m$ and every other type sends a message in $M(\theta)\smallsetminus\{m\}$; this is possible because no type outside $P_t$ is forced to send $m$, by (i). The senders of $m$ are then exactly $P_t$, so $\mu_\sigma(\cdot\sep m)=\mu^0_{P_t}$, and hence $\mu^0_{P_t}\in\mathcal{F}(m)$.
+
+    (iii) $\Msg_t$ is non-empty, so $G_t$ admits a coalition by \cref{remark:coalitions-exist} and $\W_t\neq\varnothing$; it is compact by \cref{lem:coalition-compact}, so the maximum exists. Fix $\theta\in R_t$ and $m\in M(\theta)\subseteq\Msg_t$. Pooling on $m$ in $G_t$ is a coalition with type set $P_t=P(m)\cap R_t$ and payoff $\overline{v}(\mu^0_{P_t})$, so by (ii),
+    \[
+        \max\W_t\geq\overline{v}(\mu^0_{P_t})\geq\underline{v}(\mu^0_{P_t})\geq\min_{\mu\in\mathcal{F}(m)}\underline{v}(\mu).
+    \]
+    Taking the maximum over $m\in M(\theta)$ gives $\max\W_t\geq\underline{u}(\theta)$, and then the maximum over $\theta\in R_t$.
+\end{proof}
+
+\begin{definition}\label{dfn:coe}
+    A partition $\Pi=\{(C_t,\sigma_t,w_t)\}_{t=1}^T$ of $G$ is a \emph{coalition-optimal equilibrium} (COE) partition if, for every $t$ (with $w_0:=\infty$),
+    \[
+        w_t=\max\W_t
+        \qquad\text{and}\qquad
+        w_t\leq w_{t-1}.
+    \]
+\end{definition}
+
+The maximum exists by \cref{lem:remaining-games}(iii). Unlike the greedy selection, a COE partition maximizes the payoff with no upper constraint and then requires the resulting sequence to be non-increasing.
+
+\begin{lemma}\label{lem:coe-greedy}
+    \begin{enumerate}
+        \item[(i)] Every COE partition of $G$ is a greedy partition, hence a coalition-proof PBE partition.
+        \item[(ii)] A greedy partition of $G$ is a COE partition if and only if $\max\W_t\leq w_{t-1}$ for every $t$.
+    \end{enumerate}
+\end{lemma}
+\begin{proof}
+    (i) Let $\Pi$ be a COE partition and fix $t$. The initial segment through step $t-1$ is a prefix with residual $R_t$, so by \cref{lem:remaining-games}(iii), $w_t=\max\W_t\geq\max_{\theta\in R_t}\underline{u}(\theta)$, and $w_t\leq w_{t-1}$ by definition. Hence $w_t$ lies in the greedy constraint set $\W_t\cap[\max_{\theta\in R_t}\underline{u}(\theta),\,w_{t-1}]$ and equals the maximum of $\W_t$, which contains that set; so $w_t$ is the maximum of the constraint set, and $\Pi$ is greedy. By \cref{prop:cppbe-characterization}, $\Pi$ is a coalition-proof PBE partition.
+
+    (ii) Let $\Pi$ be greedy. If $\Pi$ is COE, then $\max\W_t=w_t\leq w_{t-1}$ for every $t$. Conversely, suppose $\max\W_t\leq w_{t-1}$ for every $t$. By \cref{lem:remaining-games}(iii), $\max\W_t\geq\max_{\theta\in R_t}\underline{u}(\theta)$, so $\max\W_t$ lies in the greedy constraint set, whose maximum is therefore $\max\W_t$ itself; by greediness $w_t=\max\W_t$, and $w_t\leq w_{t-1}$ holds since $w_t$ lies in the constraint set. So $\Pi$ is COE.
+\end{proof}
+
+\section{Proofs for \cref{sec:existence-betweenness}}
+
+\subsection*{Proof of \cref{lem:btw-attained}}
+Let $X^*\subseteq\Msg_R$ attain $v^*(R)$ and set $C^*:=M^{-1}_R(X^*)$. Consider the auxiliary game
+\[
+    G':=(C^*,X^*,M',\mu^0_{C^*},V_{C^*}),
+    \qquad
+    M'(\theta):=M(\theta)\cap X^* .
+\]
+Note that $G'$ is a disclosure game: by construction every type in $C^*$ can send some message in $X^*$, and every message in $X^*$ is available to some type of $C^*$; the remaining assumptions are inherited from $G$. However, $G'$ is not simply a restricted game of $G$,
+because its message space is set to $X^*$ rather than $\Msg_{C^*}$, so some messages available to types in $C^*$ are not available in $G'$.
+Nevertheless, the definitions and equilibrium results apply to it.
+
+Every disclosure game has a PBE partition with decreasing payoffs (\cref{lem:pbe-existence,prop:pbe-characterization}); applied to $G'$ this gives a partition $\{(\widetilde C_\tau,\widetilde\sigma_\tau,\widetilde w_\tau)\}_{\tau=1}^k$ with $\widetilde w_1\geq\cdots\geq\widetilde w_k$. Each cell is a coalition in a residual game of $G'$, so \cref{lem:value-id} gives $\widetilde w_\tau=v(\mu^0_{\widetilde C_\tau})$. Since the cells partition $C^*$,
+\[
+    \mu^0_{C^*}
+    =
+    \sum_\tau\frac{\mu^0(\widetilde C_\tau)}{\mu^0(C^*)}\,\mu^0_{\widetilde C_\tau}
+\]
+is a convex combination with positive weights. From quasiconvexity of $v$, we get
+\[
+    v^*(R)=v(\mu^0_{C^*})\leq\max_\tau\widetilde w_\tau=\widetilde w_1.
+\]
+
+Next notice that $(\widetilde{C}_1,\widetilde\sigma_1,\widetilde w_1)$ is a coalition of $G\vert_R$. Conditions \cref{C1}, \cref{C2}, and \cref{C4} carry over because $\widetilde\sigma_1$ uses only messages in $M'(\theta)\subseteq M(\theta)$ and induces the same posteriors when viewed in $G\vert_R$. For exclusivity in $G\vert_R$, take $\theta\in R$ with $M(\theta)\cap X(\widetilde\sigma_1)\neq\varnothing$. Since $X(\widetilde\sigma_1)\subseteq X^*$, this type lies in $C^*$; then $M'(\theta)\cap X(\widetilde\sigma_1)\neq\varnothing$, so exclusivity of the first cell in $G'$ places $\theta$ in $\widetilde C_1$. Thus $\widetilde w_1\in\W_R$. Combining the inequalities,
+\[
+    \widetilde w_1\leq\max\W_R\leq v^*(R)\leq\widetilde w_1,
+\]
+so $(\widetilde{C}_1,\widetilde\sigma_1,\widetilde w_1)$ is a coalition of $G\vert_R$ paying $v^*(R)$. \qed
+
+\subsection*{Proof of \cref{lem:btw-merging}}
+First identify the type set generated by the combined evidence. Preimages distribute over unions:
+\[
+    M^{-1}_R(X(\sigma)\cup X(\sigma'))
+    =
+    M^{-1}_R(X(\sigma))\cup M^{-1}_R(X(\sigma')) .
+\]
+The first term is $C$ by exclusivity and its converse. For the second term,
+\[
+    M^{-1}_R(X(\sigma'))\smallsetminus C
+    =
+    M^{-1}_{R'}(X(\sigma'))
+    =
+    C',
+\]
+and hence $M^{-1}_R(X(\sigma'))\subseteq C\cup C'$. The union is therefore exactly $C\cup C'$.
+
+By \cref{lem:value-id}, $v(\mu^0_C)=w$ and $v(\mu^0_{C'})=w'>w$. The sets $C$ and $C'$ are disjoint and non-empty, so
+\[
+    \mu^0_{C\cup C'}
+    =
+    \lambda\mu^0_C+(1-\lambda)\mu^0_{C'},
+    \qquad
+    \lambda:=\frac{\mu^0(C)}{\mu^0(C\cup C')}\in(0,1).
+\]
+The quasiconcave half of B gives
+\[
+    v(\mu^0_{C\cup C'})\geq \min\{w,w'\}=w.
+\]
+On the other hand, $C\cup C'$ is a relative preimage in $G\vert_R$, so \cref{lem:btw-attained} gives
+\[
+    v(\mu^0_{C\cup C'})\leq v^*(R)=\max\W_R=w.
+\]
+Thus $v(\mu^0_{C\cup C'})=w$.
+
+If B$^*$ holds, the same convex combination must satisfy the strict quasiconcave inequality, because $v(\mu^0_C)=w\neq w'=v(\mu^0_{C'})$. This would give $v(\mu^0_{C\cup C'})>w$, contradicting the equality just proved. Therefore no coalition of $G\vert_{R'}$ can pay more than $\max\W_R$.
+\qed
+
+\subsection*{Proof of \cref{thm:two}}
+We first prove the bound on residual maxima that drives the argument. Let a coalition of $G\vert_R$ with type set $C$ attain $\max\W_R$, and let $R':=R\smallsetminus C$ be non-empty. We claim that
+\[
+    \max\W_{R'}\leq\max\W_R .
+\]
+Under B$^*$ this is exactly the strict-betweenness conclusion of \cref{lem:btw-merging}. Under genericity, suppose instead that $G\vert_{R'}$ admits a coalition $(C',\sigma',w')$ with $w'>w:=\max\W_R$. By \cref{lem:btw-merging}, the union $C\cup C'$ is a relative preimage in $G\vert_R$ and
+\[
+    v(\mu^0_{C\cup C'})=w.
+\]
+Also, \cref{lem:value-id} gives $v(\mu^0_C)=w$. Genericity therefore forces $C\cup C'=C$, which is impossible because $C'$ is a non-empty subset of $R\smallsetminus C$. This proves the bound.
+
+Part~(i). We show by induction that every greedy choice takes the unconstrained maximum in the current residual game. Suppose this holds before step $t$, and let $R_t\neq\varnothing$. If $t\geq2$, the step-$(t-1)$ coalition attains $\max\W_{t-1}$ by the induction hypothesis, so the bound above gives
+\[
+    \max\W_t\leq w_{t-1}.
+\]
+For $t=1$ this upper bound is vacuous because $w_0=\infty$. The lower bound is the standard one: by \cref{lem:remaining-games}(iii),
+\[
+    \max\W_t\geq\max_{\theta\in R_t}\underline u(\theta).
+\]
+Thus $\max\W_t$ belongs to the greedy constraint set
+\[
+    \W_t\cap\bigl[\max_{\theta\in R_t}\underline u(\theta),\,w_{t-1}\bigr],
+\]
+and it is the maximum of that set. The greedy choice at step $t$ therefore has $w_t=\max\W_t$, completing the induction.
+
+The constraint set is non-empty at every step, so no run of \cref{alg:greedy-partition} halts. Each run removes a non-empty cell and therefore terminates in a greedy partition. By \cref{prop:cppbe-characterization}, every such partition is a coalition-proof PBE partition.
+
+Part~(ii). If a partition satisfies $w_t=\max\W_t\leq w_{t-1}$ at every step, then it is a coalition-optimal partition in the sense of \cref{dfn:coe}. By \cref{lem:coe-greedy}(i) it is greedy, and by \cref{prop:cppbe-characterization} it is a coalition-proof PBE partition. Conversely, any coalition-proof PBE partition is greedy. Part~(i) gives $w_t=\max\W_t$ at every step, and the inequality $w_t\leq w_{t-1}$ is part of the greedy constraint.
+
+\emph{Uniqueness under genericity.} Let $\Pi$ and $\Pi'$ be coalition-proof PBE partitions of a generic game. They are both greedy by \cref{prop:cppbe-characterization}. We prove by induction on $t$ that they have the same residual sets, payoffs, and cells. At $t=1$ the residual sets and previous payoffs agree. Suppose they agree at step $t$. If the common residual set is empty, both partitions have length $t-1$. Otherwise both continue, and greediness gives the same payoff:
+\[
+    w_t=w'_t
+    =
+    \max\Bigl(\W_t\cap\bigl[\max_{\theta\in R_t}\underline u(\theta),\,w_{t-1}\bigr]\Bigr).
+\]
+By \cref{lem:value-id},
+\[
+    v(\mu^0_{C_t})=w_t=w'_t=v(\mu^0_{C'_t}),
+\]
+so genericity gives $C_t=C'_t$. Hence $R_{t+1}=R'_{t+1}$, and the induction continues. The two partitions have the same length, cells, and payoffs.
+\qed
+
+The proof of \cref{thm:two-B} rests on the following ordering of each level set of $v$.
+
+\begin{lemma}\label{lem:btw-order}
+    Assume B and fix $y\in\mathbb{R}$. Write $L:=\{\mu\in\Delta\Theta\sep v(\mu)=y\}$, $L^{++}:=\{v>y\}$, and $L^{--}:=\{v<y\}$. There is a complete and transitive relation $\succeq$ on $L$ such that:
+    \begin{enumerate}
+        \item[(i)] If $x\in L$, $u\in L^{++}$, $\alpha\in(0,1)$, and $z:=\alpha x+(1-\alpha)u\in L$, then $z\succ x$.
+        \item[(ii)] If $\bar\mu\in L$ and $\bar\mu=\sum_\tau\alpha_\tau\mu_\tau$ is a convex combination with positive weights of beliefs $\mu_\tau\in L\cup L^{--}$, then $\mu_\tau\in L$ and $\mu_\tau\succeq\bar\mu$ for some $\tau$.
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+We use the following proper-separation fact. If two non-empty convex sets $A_1,A_2\subseteq\mathbb{R}^\Theta$ are disjoint, then their relative interiors are disjoint, so there is an affine functional $h$ with $h\leq0$ on $A_1$, $h\geq0$ on $A_2$, and $h$ not identically zero on $A_1\cup A_2$ \parencite[Theorem~11.3]{rockafellar1970}.
+
+The order is constructed recursively on convex subsets of the simplex. Fix a non-empty compact convex set $F\subseteq\Delta\Theta$ and write
+\[
+    S_F:=L\cap F,\qquad
+    U_F:=L^{++}\cap F,\qquad
+    B_F:=L^{--}\cap F.
+\]
+Under B, these three sets are convex; so are $L^{+}:=\{v\geq y\}$ and $L^{-}:=\{v\leq y\}$. We prove, by induction on the affine dimension $d$ of $F$, that there is a complete and transitive relation $\succeq_F$ on $S_F$ satisfying (i) and (ii), with $(S_F,U_F,B_F)$ in place of $(L,L^{++},L^{--})$. The lemma is the case $F=\Delta\Theta$. If $S_F=\varnothing$, there is nothing to order, so assume $S_F\neq\varnothing$.
+
+\emph{Base case $d=0$.} Then $F$ is a singleton. Declare its points indifferent. Condition (i) is vacuous, because it would require the singleton to lie in both $S_F$ and $U_F$, and (ii) holds because every belief in the decomposition is the singleton.
+
+\emph{Inductive step.} Let $d\geq1$ and assume the claim for all non-empty compact convex sets of affine dimension below $d$. In each case, we define a rank $\rho$ on $S_F$. Points with different ranks are ordered by the rank. Ties are resolved inside lower-dimensional slices: for each rank value $r$, we choose a compact convex set $F_r\subseteq F$ of affine dimension below $d$ that contains every point of $S_F$ with rank $r$, and set
+\[
+    x\succeq_F x'
+    \quad:\iff\quad
+    \rho(x)>\rho(x')
+    \ \text{ or }\
+    \bigl(\rho(x)=\rho(x')=r\ \text{ and }\ x\succeq_{F_r}x'\bigr).
+\]
+The inductive hypothesis supplies the order on each slice, so $\succeq_F$ is complete and transitive.
+
+\emph{Case 1: $U_F=B_F=\varnothing$.} Declare indifference; (i) is vacuous and (ii) holds with any $\mu_\tau$, all of which lie in $S_F$.
+
+\emph{Case 2: $U_F\neq\varnothing$, $B_F=\varnothing$.} Separate the weak lower set $L^{-}\cap F$ from the strict upper set $U_F$. Thus there is an affine $h$ with $h\leq0$ on $L^{-}\cap F$, $h\geq0$ on $U_F$, and $h$ not identically zero on their union. Put $\rho:=h$ on $S_F$ and $F_r:=\{x\in F\sep h(x)=r\}$. The functional $h$ is non-constant on $\aff(F)$: if it were constant on $F$, its value would be both non-positive on $S_F$ and non-negative on $U_F$, hence zero, contradicting proper separation. Each slice is therefore lower-dimensional.
+
+For (i), write $z=\alpha x+(1-\alpha)u$ with $x,z\in S_F$ and $u\in U_F$. Then
+\[
+    h(z)-h(x)=(1-\alpha)\bigl(h(u)-h(x)\bigr)\geq0.
+\]
+If the inequality is strict, then $z\succ_F x$ by rank. If it is an equality, then $x,z,u\in F_0$, and the inductive version of (i) inside $F_0$ gives $z\succ_F x$.
+
+For (ii), all beliefs in the decomposition lie in $S_F$, because $B_F=\varnothing$. If some component has $h(\mu_\tau)>h(\bar\mu)$, it is ranked above $\bar\mu$. Otherwise every component has $h(\mu_\tau)\leq h(\bar\mu)$, and the affine identity
+\[
+    \sum_\tau\alpha_\tau h(\mu_\tau)=h(\bar\mu)
+\]
+forces all components to have the same value $r:=h(\bar\mu)$. They all lie in $F_r$, so the inductive version of (ii) in $F_r$ applies.
+
+\emph{Case 3: $U_F=\varnothing$, $B_F\neq\varnothing$.} Separate the strict lower set $B_F$ from the weak upper set $L^{+}\cap F$. Let $h$ be affine with $h\leq0$ on $B_F$, $h\geq0$ on $L^{+}\cap F$, and not identically zero on their union. Define $\rho$ and the slices as in Case 2. The same argument shows that $h$ is non-constant on $\aff(F)$. Condition (i) is vacuous because $U_F=\varnothing$.
+
+For (ii), at least one component of the decomposition lies in $S_F$. If all components lay in $B_F$, the quasiconvex half of B would give
+\[
+    v(\bar\mu)\leq\max_\tau v(\mu_\tau)<y,
+\]
+contradicting $\bar\mu\in S_F$. Let $r:=h(\bar\mu)$. If some component in $S_F$ has $h(\mu_\tau)>r$, it works. Otherwise every term in
+\[
+    \sum_\tau\alpha_\tau\bigl(h(\mu_\tau)-r\bigr)=0
+\]
+is non-positive: this is true for $\mu_\tau\in S_F$ by assumption and for $\mu_\tau\in B_F$ because $h(\mu_\tau)\leq0\leq r$. Hence all terms vanish, every component lies in $F_r$, and the inductive version of (ii) in $F_r$ applies.
+
+\emph{Case 4: $U_F\neq\varnothing$ and $B_F\neq\varnothing$.} Now both strict sides are present, so one separator is not enough. Take affine separators $a$ and $b$, each proper in the sense above, such that
+\[
+    a\leq0\text{ on }L^{-}\cap F,\quad a\geq0\text{ on }U_F,
+    \qquad
+    b\leq0\text{ on }B_F,\quad b\geq0\text{ on }L^{+}\cap F.
+\]
+On $S_F$ we have $a\leq0\leq b$. For $\lambda\in[0,1]$, put
+\[
+    h_\lambda:=\lambda a+(1-\lambda)b.
+\]
+Then $h_\lambda\geq0$ on $U_F$ and $h_\lambda\leq0$ on $B_F$. Call $x\in S_F$ \emph{degenerate} if $a(x)=b(x)=0$; otherwise $b(x)-a(x)>0$. Define
+\[
+    \rho(x):=\frac{b(x)}{b(x)-a(x)}\in[0,1]\ \text{ for non-degenerate }x,
+    \qquad
+    \rho(x):=1\ \text{ for degenerate }x.
+\]
+A direct calculation gives, for non-degenerate $x\in S_F$,
+\[
+    h_\lambda(x)=\bigl(\rho(x)-\lambda\bigr)\bigl(b(x)-a(x)\bigr).
+\]
+Thus the sign of $h_\lambda(x)$ is the sign of $\rho(x)-\lambda$, while every degenerate point has $h_\lambda(x)=0$ for all $\lambda$. Let
+\[
+    F_\lambda:=\{x\in F\sep h_\lambda(x)=0\}.
+\]
+Every point of $S_F$ with rank $\lambda$ lies in $F_\lambda$, with degenerate points placed in $F_1$.
+
+We now check that every relevant slice is lower-dimensional. This is the only place where semicontinuity is used. Because $v$ is upper semicontinuous, $L^{--}$ is relatively open in $\Delta\Theta$; since $B_F$ is non-empty, $\aff(B_F)=\aff(F)$. Fix $\lambda$ with $F_\lambda\cap S_F\neq\varnothing$. If $h_\lambda$ were constant on $F$, then evaluating it at a point of $F_\lambda$ would make the constant zero. For $\lambda\in(0,1)$, the equality $\lambda a+(1-\lambda)b=0$ on $B_F$, together with $a\leq0$ and $b\leq0$ there, would force $a=b=0$ on $B_F$. Since $\aff(B_F)=\aff(F)$, $b$ would vanish on all of $\aff(F)$, contradicting proper separation for $b$. For $\lambda=1$, the same argument uses proper separation for $a$; for $\lambda=0$, it uses proper separation for $b$. Hence $h_\lambda$ is non-constant on $\aff(F)$, and $F_\lambda$ has affine dimension below $d$.
+
+For (i), put $\lambda:=\rho(x)$. Then $h_\lambda(x)=0$ and
+\[
+    h_\lambda(z)=(1-\alpha)h_\lambda(u)\geq0.
+\]
+If $h_\lambda(z)>0$, then $z$ has rank strictly above $\lambda=\rho(x)$, so $z\succ_F x$. If $h_\lambda(z)=0$, then $x,z,u\in F_\lambda$. Any strict rank increase already proves the claim; otherwise the tie is resolved inside $F_\lambda$, where the inductive version of (i) gives $z\succ_F x$.
+
+For (ii), first note as in Case 3 that some component lies in $S_F$. Put $\bar\lambda:=\rho(\bar\mu)$, so $h_{\bar\lambda}(\bar\mu)=0$. If some component in $S_F$ has rank above $\bar\lambda$, it works. Otherwise every component in $S_F$ has non-positive $h_{\bar\lambda}$ value, and every component in $B_F$ has non-positive $h_{\bar\lambda}$ value as well. Since
+\[
+    \sum_\tau\alpha_\tau h_{\bar\lambda}(\mu_\tau)=h_{\bar\lambda}(\bar\mu)=0,
+\]
+all these values are zero, so every component lies in $F_{\bar\lambda}$. The inductive version of (ii) in $F_{\bar\lambda}$ gives a component $\mu_{\tau^*}\in S_{F_{\bar\lambda}}$ with $\mu_{\tau^*}\succeq_{F_{\bar\lambda}}\bar\mu$. This component is weakly above $\bar\mu$ in the order on $F$, either by a higher rank or by the tie-breaker in $F_{\bar\lambda}$. This completes the induction.
+\end{proof}
+
+\medskip\noindent\emph{Remark (two separators are necessary in Case 4).} Under plain B a level set of $v$ can be full-dimensional, and a single separator need not order it in the way property~(ii) requires. With three types, take $v=h\circ\rho$, where $\rho(\mu):=\mu(\theta_1)/(1+\mu(\theta_2))$ is monotone along segments and $h$ is monotone with a plateau. Then $v$ is continuous, single-valued, and satisfies B, but at the plateau value the level set is a pencil of lines through a point outside the simplex. A single separator can assign a strictly larger value to a point in $L^{--}$ than to a point in $L$, so ranking only by that separator violates property~(ii). The interpolation $h_\lambda=\lambda a+(1-\lambda)b$ in Case 4 is what restores the needed ordering. Under B$^*$ every level set is a hyperplane trace and a single separator suffices.
+
+\subsection*{Proof of \cref{thm:two-B}}
+We construct the desired partition recursively. Let $R_1:=\Theta$. Given a non-empty residual set $R_t$, set $w_t:=\max\W_t$; this maximum exists and is attained by \cref{lem:btw-attained}. Among the coalitions of $G_t$ attaining $w_t$, choose one whose prior is maximal under the relation from \cref{lem:btw-order} on the level set $\{v=w_t\}$. Such a choice exists because only finitely many type sets, and hence only finitely many priors, can arise. Call the selected coalition $(C_t,\sigma_t,w_t)$ and set $R_{t+1}:=R_t\smallsetminus C_t$. Since each step removes a non-empty cell, the recursion returns a partition $\Pi$ with $w_t=\max\W_t$ at every step.
+
+It remains to show that these payoffs do not increase. Suppose, toward a contradiction, that $w_{s+1}>w_s$ for some step $s$. Write
+\[
+    y:=w_s,\qquad
+    L:=\{v=y\},\qquad
+    L^{++}:=\{v>y\},\qquad
+    L^{--}:=\{v<y\}.
+\]
+By \cref{lem:value-id}, $\mu^0_{C_s}\in L$ and $\mu^0_{C_{s+1}}\in L^{++}$. Since the step-$s$ coalition attains $\max\W_s$, \cref{lem:btw-merging} applied in $G_s$ gives
+\[
+    D:=C_s\cup C_{s+1}=M^{-1}_{R_s}\bigl(X_s\cup X_{s+1}\bigr)
+    \qquad\text{and}\qquad
+    v(\mu^0_D)=y,
+\]
+and $\mu^0_D=\alpha\mu^0_{C_s}+(1-\alpha)\mu^0_{C_{s+1}}$ with $\alpha:=\mu^0(C_s)/\mu^0(D)\in(0,1)$.
+
+Now form the auxiliary game on this union and this combined evidence:
+\[
+    G'
+    :=
+    \bigl(D,\,
+    X_s\cup X_{s+1},\,
+    \theta\mapsto M(\theta)\cap(X_s\cup X_{s+1}),\,
+    \mu^0_D,\,
+    V_D\bigr).
+\]
+It is a disclosure game by the same checks used in \cref{lem:btw-attained}: every type in $D$ can send some message in $X_s\cup X_{s+1}$ because $D$ is the relative preimage, and every message in $X_s\cup X_{s+1}$ is on path in one of the two coalitions and hence is available to some type in $D$.
+
+By \cref{lem:pbe-existence} and the strict-payoff form of \cref{prop:pbe-characterization}, $G'$ admits a PBE partition
+\[
+    \{(\widetilde C_\tau,\widetilde\sigma_\tau,\widetilde w_\tau)\}_{\tau=1}^k
+\]
+with
+\[
+    \widetilde w_1>\cdots>\widetilde w_k .
+\]
+\Cref{lem:value-id} gives $\widetilde w_\tau=v(\mu^0_{\widetilde C_\tau})$ for every $\tau$, and the cells partition $D$, so
+\[
+    \mu^0_D=\sum_\tau\beta_\tau\mu^0_{\widetilde C_\tau}
+    \qquad\text{with all }\beta_\tau>0.
+\]
+
+As in \cref{lem:btw-attained}, the first cell $(\widetilde C_1,\widetilde\sigma_1,\widetilde w_1)$ is a coalition of the original residual game $G_s$. Hence $\widetilde w_1\leq\max\W_s=y$. On the other hand, the quasiconvex half of B applied to the last convex combination gives
+\[
+    y=v(\mu^0_D)\leq\max_\tau\widetilde w_\tau=\widetilde w_1.
+\]
+Therefore $\widetilde w_1=y$, and strict decrease gives $\widetilde w_\tau<y$ for all $\tau\geq2$. Equivalently, $\mu^0_{\widetilde C_1}\in L$ and $\mu^0_{\widetilde C_\tau}\in L^{--}$ for $\tau\geq2$.
+
+Apply \cref{lem:btw-order} at level $y$. Property (i), with $x=\mu^0_{C_s}$, $u=\mu^0_{C_{s+1}}$, and $z=\mu^0_D$, gives
+\[
+    \mu^0_D\succ\mu^0_{C_s}.
+\]
+Property (ii), applied to the decomposition $\mu^0_D=\sum_\tau\beta_\tau\mu^0_{\widetilde C_\tau}$, gives a cell on the level set whose prior is weakly above $\mu^0_D$. Since the auxiliary partition has strictly decreasing payoffs, the only cell on level $y$ is the first one. Thus
+\[
+    \mu^0_{\widetilde C_1}\succeq\mu^0_D\succ\mu^0_{C_s}.
+\]
+But $(\widetilde C_1,\widetilde\sigma_1,y)$ is a coalition of $G_s$ attaining $\max\W_s$, so this contradicts the choice of $(C_s,\sigma_s,w_s)$ as maximal in the level-set order among payoff-maximal coalitions at step $s$.
+
+Hence $w_t\leq w_{t-1}$ at every step. The constructed partition is a COE partition (\cref{dfn:coe}), so by \cref{lem:coe-greedy}(i) it is greedy. By \cref{prop:cppbe-characterization}, it is a coalition-proof PBE partition. Therefore a coalition-proof PBE exists.
+\qed
+
+\section{Technical Lemmas (for online publication)}\label{sec:technical}
+
+\begin{lemma}\label{lem:restriction}
+    For every disclosure game $G$ and non-empty $R\subseteq\Theta$, the restricted game $G\vert_R$ is itself a disclosure game, and $G\vert_\Theta=G$. Moreover, restriction is transitive: for non-empty $R'\subseteq R\subseteq\Theta$,
+    \[
+        (G\vert_R)\vert_{R'}=G\vert_{R'}.
+    \]
+\end{lemma}
+\begin{proof}
+    The sets $R$ and $\Msg_R$ are non-empty and finite, each $M_R(\theta)=M(\theta)$ is non-empty, $\Msg_R=\bigcup_{\theta\in R}M(\theta)$ gives \cref{A3:message-coverage}, and $\mu^0_R$ has full support on $R$. The zero-extension $\iota_{R,\Theta}$ is continuous, so $V_R=V\circ\iota_{R,\Theta}$ is upper hemicontinuous and takes the same non-empty compact interval values as $V$, giving \cref{A4:V-uhc}. Thus $G\vert_R$ is a disclosure game. For $R=\Theta$ we have $\mu^0(\Theta)=1$ and $\iota_{\Theta,\Theta}=\mathrm{id}$, so every component of $G\vert_\Theta$ equals that of $G$.
+
+    For transitivity, both sides have type space $R'$, message space $\bigcup_{\theta\in R'}M(\theta)$, and message mapping $M$. The priors agree: for $\theta\in R'$,
+    \[
+        (\mu^0_R)_{R'}(\theta)=\frac{\mu^0_R(\theta)}{\mu^0_R(R')}=\frac{\mu^0(\theta)/\mu^0(R)}{\mu^0(R')/\mu^0(R)}=\mu^0_{R'}(\theta).
+    \]
+    The payoff correspondences agree because $\iota_{R,\Theta}\circ\iota_{R',R}=\iota_{R',\Theta}$.
+\end{proof}
+
+Fix a disclosure game $G=(\Theta,\Msg,M,\mu^0,V)$ and a message $m\in\Msg$. Recall that $P(m)=M^{-1}(\{m\})$ is the set of types that can send $m$, and let $F(m):=\{\theta\in\Theta\sep M(\theta)=\{m\}\}$ be the set of types \emph{forced} to send $m$; note that $F(m)\subseteq P(m)$.
+
+\begin{lemma}\label{lem:feasible-polytope}
+    The set of feasible beliefs $\mathcal{F}(m)$ is the set of all $\mu\in\Delta\Theta$ such that
+    \begin{enumerate}
+        \item[(i)] $\mu(\theta)=0$ for every $\theta\notin P(m)$;
+        \item[(ii)] $\mu(\theta)\,\mu^0(\theta')=\mu(\theta')\,\mu^0(\theta)$ for all $\theta,\theta'\in F(m)$;
+        \item[(iii)] $\mu(\theta)\,\mu^0(\theta')\leq\mu^0(\theta)\,\mu(\theta')$ for all $\theta\in P(m)\smallsetminus F(m)$ and $\theta'\in F(m)$.
+    \end{enumerate}
+    In particular, $\mathcal{F}(m)$ is a non-empty compact convex polytope.
+\end{lemma}
+
+\begin{proof}
+    Write $P:=P(m)$ and $F:=F(m)$; the set $P$ is non-empty by \cref{A3:message-coverage}, and write $\mu^0(F):=\sum_{\theta\in F}\mu^0(\theta)$. Every sender strategy $\sigma$ satisfies $\sigma(m\sep\theta)=0$ for $\theta\notin P$, since $\supp\sigma(\cdot\sep\theta)\subseteq M(\theta)$, and $\sigma(m\sep\theta)=1$ for $\theta\in F$, since $M(\theta)=\{m\}$.
+
+    \emph{Parametrization.} Let $\sigma$ be a strategy with $m\in X(\sigma)$, and put $\alpha_\theta:=\sigma(m\sep\theta)\in[0,1]$ for $\theta\in P\smallsetminus F$. The denominator of Bayes' rule is $D:=p_\sigma(m)=\mu^0(F)+\sum_{\theta\in P\smallsetminus F}\mu^0(\theta)\,\alpha_\theta$, and the induced belief $\mu:=\mu_\sigma(\cdot\sep m)$ is
+    \[
+        \mu(\theta)=
+        \begin{cases}
+            \mu^0(\theta)/D, & \theta\in F,\\
+            \mu^0(\theta)\,\alpha_\theta/D, & \theta\in P\smallsetminus F,\\
+            0, & \theta\notin P.
+        \end{cases}
+    \]
+
+    \emph{Feasible beliefs satisfy \textup{(i)--(iii)}.} Let $\mu\in\mathcal{F}(m)$, with parameter $\alpha$ and denominator $D$ as above. Condition (i) is immediate. For $\theta,\theta'\in F$, both $\mu(\theta)\,\mu^0(\theta')$ and $\mu(\theta')\,\mu^0(\theta)$ equal $\mu^0(\theta)\,\mu^0(\theta')/D$, so (ii) holds. For $\theta\in P\smallsetminus F$ and $\theta'\in F$,
+    \[
+        \mu(\theta)\,\mu^0(\theta')=\frac{\mu^0(\theta)\,\alpha_\theta\,\mu^0(\theta')}{D}\leq\frac{\mu^0(\theta)\,\mu^0(\theta')}{D}=\mu^0(\theta)\,\mu(\theta'),
+    \]
+    since $\alpha_\theta\leq1$, so (iii) holds.
+
+    \emph{Beliefs satisfying \textup{(i)--(iii)} are feasible.} Let $\mu\in\Delta\Theta$ satisfy (i)--(iii). Each $\theta\in P\smallsetminus F$ has $M(\theta)\smallsetminus\{m\}\neq\varnothing$, so it can send $m$ with any chosen probability and place the remaining mass on $M(\theta)\smallsetminus\{m\}$; each $\theta\in F$ sends $m$; each $\theta\notin P$ sends a message in $M(\theta)$, none of which is $m$.
+
+    If $F=\varnothing$, then (i) gives $\supp\mu\subseteq P$. Set $c:=\max_{\theta\in\supp\mu}\mu(\theta)/\mu^0(\theta)>0$ and let each $\theta\in P$ send $m$ with probability $\alpha_\theta:=\mu(\theta)/(c\,\mu^0(\theta))\in[0,1]$. Then $p_\sigma(m)=\sum_{\theta\in P}\mu^0(\theta)\,\alpha_\theta=1/c>0$ and $\mu_\sigma(\theta\sep m)=\mu^0(\theta)\,\alpha_\theta\,c=\mu(\theta)$.
+
+    If $F\neq\varnothing$, then $\mu(\theta')>0$ for every $\theta'\in F$: otherwise (ii) makes $\mu$ vanish on all of $F$, and then (iii) makes $\mu(\theta)\leq0$ for every $\theta\in P\smallsetminus F$, so with (i) the belief $\mu$ would have total mass zero. By (ii) the ratio $\lambda:=\mu(\theta')/\mu^0(\theta')$ is the same positive number for every $\theta'\in F$. Put $\alpha_\theta:=\mu(\theta)/(\lambda\,\mu^0(\theta))$ for $\theta\in P\smallsetminus F$; then $\alpha_\theta\geq0$, and $\alpha_\theta\leq1$ by (iii). Since $\mu$ has total mass one,
+    \[
+        1=\sum_{\theta\in F}\lambda\,\mu^0(\theta)+\sum_{\theta\in P\smallsetminus F}\lambda\,\mu^0(\theta)\,\alpha_\theta=\lambda\Bigl(\mu^0(F)+\sum_{\theta\in P\smallsetminus F}\mu^0(\theta)\,\alpha_\theta\Bigr),
+    \]
+    so the denominator $D$ equals $1/\lambda$, and the strategy that sends $m$ with probabilities $\alpha$ induces $\mu$ by the parametrization.
+
+    \emph{Conclusion.} Taking the strategy under which every type in $P$ sends $m$ gives $\mu^0_{P(m)}\in\mathcal{F}(m)$, so $\mathcal{F}(m)$ is non-empty. Conditions (i)--(iii) are finitely many linear equalities and weak inequalities, so they cut the simplex $\Delta\Theta$ down to a bounded polyhedron. Hence $\mathcal{F}(m)$ is a non-empty compact convex polytope.
+\end{proof}
+
+\begin{lemma}\label{lem:pbe-existence}
+    Every disclosure game admits a PBE.
+\end{lemma}
+\begin{proof}
+We exhibit a triple $(\sigma,\mu,r)$ satisfying the conditions of \cref{dfn:PBE} as a fixed point of a correspondence on the non-empty compact convex set
+\[
+    K := \Sigma \times \prod_{m\in\Msg}\mathcal{F}(m) \times \prod_{m\in\Msg} I,
+    \qquad
+    \Sigma := \prod_{\theta\in\Theta}\Delta M(\theta),
+    \quad
+    I := \Bigl[\min_{\Delta\Theta}\underline{v},\,\max_{\Delta\Theta}\overline{v}\Bigr].
+\]
+Here $\Sigma$ is the set of sender strategies, a product of simplices; each $\mathcal{F}(m)$ is a non-empty compact convex polytope (\cref{lem:feasible-polytope}); and $I$ is a compact interval, finite because $\underline{v}$ is lower semicontinuous and $\overline{v}$ upper semicontinuous on the compact simplex $\Delta\Theta$ by \cref{A4:V-uhc}, with $V(\mu)=[\underline{v}(\mu),\overline{v}(\mu)]\subseteq I$ for every $\mu\in\Delta\Theta$. Since $\Theta$ and $\Msg$ are finite, $K$ is a subset of a finite-dimensional Euclidean space.
+
+Define $\Phi:K\rightrightarrows K$ by
+\[
+    \Phi(\sigma,\mu,r) := S(r)\times\prod_{m\in\Msg} B_m(\sigma)\times\prod_{m\in\Msg} V(\mu(\cdot\sep m)),
+\]
+where
+\[
+    S(r) := \prod_{\theta\in\Theta}\arg\max_{\tau\in\Delta M(\theta)}\sum_{m\in M(\theta)}\tau(m)\,r(m),
+    \qquad
+    B_m(\sigma) := \begin{cases}
+        \{\mu_\sigma(\cdot\sep m)\}, & m\in X(\sigma),\\
+        \mathcal{F}(m), & m\notin X(\sigma).
+    \end{cases}
+\]
+Because a distribution maximizes a linear objective if and only if its support lies in the set of maximizing coordinates,
+\begin{equation}\label{eqn:argmax-face}
+    \arg\max_{\tau\in\Delta M(\theta)}\sum_{m\in M(\theta)}\tau(m)\,r(m)
+    = \bigl\{\tau\in\Delta M(\theta)\sep \supp\tau\subseteq\textstyle\arg\max_{m\in M(\theta)} r(m)\bigr\}.
+\end{equation}
+
+\emph{$\Phi$ has non-empty, compact, and convex values.} Fix $(\sigma,\mu,r)\in K$. For each $\theta$, the component $\arg\max_{\tau\in\Delta M(\theta)}\sum_{m}\tau(m)\,r(m)$ of $S(r)$ is non-empty, because the continuous linear map $\tau\mapsto\sum_{m}\tau(m)\,r(m)$ attains its maximum on the non-empty compact simplex $\Delta M(\theta)$; by \eqref{eqn:argmax-face} it is a face of $\Delta M(\theta)$, hence compact and convex. Each $B_m(\sigma)$ is a subset of $\mathcal{F}(m)$: on path it is the singleton $\{\mu_\sigma(\cdot\sep m)\}$, with $\mu_\sigma(\cdot\sep m)\in\mathcal{F}(m)$ by \cref{dfn:set-feasible-beliefs}; off path it is $\mathcal{F}(m)$, which is non-empty, compact, and convex. Finally, $V(\mu(\cdot\sep m))=[\underline{v}(\mu(\cdot\sep m)),\overline{v}(\mu(\cdot\sep m))]$ is a non-empty compact interval contained in $I$ by \cref{A4:V-uhc}. As products of these sets, the values of $\Phi$ are non-empty, compact, and convex.
+
+\emph{$\Phi$ has closed graph.} Let $(\sigma_k,\mu_k,r_k)\to(\sigma,\mu,r)$ in $K$, and let $(\sigma'_k,\mu'_k,r'_k)\in\Phi(\sigma_k,\mu_k,r_k)$ converge to $(\sigma',\mu',r')$. We verify $(\sigma',\mu',r')\in\Phi(\sigma,\mu,r)$ coordinate by coordinate.
+\begin{itemize}
+    \item \emph{Sender.} Since $\sigma'_k\in S(r_k)$, for every $\theta$ and every $\tau\in\Delta M(\theta)$,
+    \[
+        \sum_{m\in M(\theta)}\sigma'_k(m\sep\theta)\,r_k(m)\;\geq\;\sum_{m\in M(\theta)}\tau(m)\,r_k(m).
+    \]
+    Each side is a finite sum of products of convergent sequences, so the inequality is preserved in the limit: $\sum_{m}\sigma'(m\sep\theta)\,r(m)\geq\sum_{m}\tau(m)\,r(m)$ for every $\tau$. Hence $\sigma'\in S(r)$.
+    \item \emph{Beliefs.} Fix $m$. If $m\notin X(\sigma)$, then $B_m(\sigma)=\mathcal{F}(m)$, and $\mu'(\cdot\sep m)\in\mathcal{F}(m)$ because $\mu'_k(\cdot\sep m)\in B_m(\sigma_k)\subseteq\mathcal{F}(m)$ for every $k$ and $\mathcal{F}(m)$ is closed. If $m\in X(\sigma)$, then $p_\sigma(m)>0$. The on-path probability $p_\sigma(m)=\sum_{\theta}\mu^0(\theta)\,\sigma(m\sep\theta)$ is continuous in $\sigma$, so $p_{\sigma_k}(m)\to p_\sigma(m)>0$ and hence $m\in X(\sigma_k)$ for all large $k$. For such $k$, $B_m(\sigma_k)=\{\mu_{\sigma_k}(\cdot\sep m)\}$, so $\mu'_k(\cdot\sep m)=\mu_{\sigma_k}(\cdot\sep m)$; and since the induced belief $\mu_\sigma(\theta\sep m)=\mu^0(\theta)\,\sigma(m\sep\theta)/p_\sigma(m)$ is continuous in $\sigma$ wherever $p_\sigma(m)>0$, we get $\mu'_k(\cdot\sep m)\to\mu_\sigma(\cdot\sep m)$. By uniqueness of limits, $\mu'(\cdot\sep m)=\mu_\sigma(\cdot\sep m)\in B_m(\sigma)$.
+    \item \emph{Payoffs.} For each $m$, $r'_k(m)\in V(\mu_k(\cdot\sep m))$ with $\mu_k(\cdot\sep m)\to\mu(\cdot\sep m)$ and $r'_k(m)\to r'(m)$. By \cref{A4:V-uhc}, $V$ is upper hemicontinuous with closed values on the compact simplex $\Delta\Theta$, so it has closed graph; therefore $r'(m)\in V(\mu(\cdot\sep m))$.
+\end{itemize}
+
+By Kakutani's fixed-point theorem \parencite[Corollary~15.3, p.~72]{border1985}, $\Phi$ has a fixed point $(\sigma,\mu,r)$. It satisfies the four conditions of \cref{dfn:PBE}: $\mu(\cdot\sep m)\in B_m(\sigma)\subseteq\mathcal{F}(m)$ gives feasibility; for $m\in X(\sigma)$, $B_m(\sigma)=\{\mu_\sigma(\cdot\sep m)\}$ gives the on-path Bayesian condition; $r(m)\in V(\mu(\cdot\sep m))$ gives payoff compatibility; and $\sigma\in S(r)$ together with \eqref{eqn:argmax-face} gives sequential rationality. Hence $(\sigma,\mu,r)$ is a PBE.
+\end{proof}
+
+\end{document}
