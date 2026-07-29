@@ -21,12 +21,13 @@ Read aristotle/pipeline.md for the queue, the prompt contract and the return pro
    The extracted top-level directory name VARIES (submission_aristotle for a first
    submit, output-final_aristotle after an `ask`). Locate files by search, e.g.
      find aristotle/call<N>-<slug>/solution -path '*CPDLinear/ThinB.lean'
-   Read aristotle/call<N>-<slug>/status.md for that call's target declarations and the
-   exact set of files it is allowed to have changed. Copy back ONLY those files into
-   lean/CPDLinear/. Never copy a file another call owns:
-     call1 owns ThinB.lean.
-     call8 owns BetweennessOrderUSC.lean, and may also change BetweennessRank.lean and
-       the proof bodies in BetweennessOrder.lean.
+   Read aristotle/call<N>-<slug>/status.md for that call's target declarations and its
+   LANE, which fixes the files it is allowed to have changed. Copy back ONLY those files
+   into lean/CPDLinear/. Never copy a file another lane owns:
+     Lane A (call1, call2) owns ThinB.lean.
+     Lane B (call3, call4, call5, call6) owns ThinBExistence.lean.
+     Lane C (call8) owns BetweennessOrderUSC.lean, and may also change
+       BetweennessRank.lean and the proof bodies in BetweennessOrder.lean.
    If the solution changed a file the call does not own, do not copy that file; note it
    in status.md and report it as a gate failure (step 4).
 
@@ -78,16 +79,24 @@ Read aristotle/pipeline.md for the queue, the prompt contract and the return pro
    Commit ONLY on a fully passing gate. A failed gate commits the status.md bookkeeping
    and nothing else.
 
-7. TOP UP THE QUEUE. Concurrency cap is 2 in-flight tasks, and two calls may run at once
-   ONLY if they own disjoint files. After a merge, if fewer than 2 are in flight, submit
-   the next queued call from the pipeline.md table whose dependencies are merged and
-   whose owned files are disjoint from everything in flight:
+7. TOP UP THE QUEUE. Concurrency cap is 3 in-flight tasks. Apply the dispatch rule from
+   pipeline.md ("Dispatch rule — follow this exactly") verbatim:
+     - in-flight = calls with a Project ID and `Merged: no`;
+     - a call is dispatchable iff its LANE has no in-flight call AND its prompt.md exists;
+       unproved dependencies do NOT block it, because every statement is already frozen
+       in the repo and a Lean proof may cite a lemma that is still `sorry`;
+     - while in-flight < 3 and something is dispatchable, dispatch in priority order
+       LANE B, then LANE A, then LANE C. Lane B (ThinBExistence.lean: call3 -> call4 ->
+       call5 -> call6) is the critical path; a tick that leaves lane B idle while
+       dispatching another lane is a scheduling error.
+     - lane order within a lane is the call number order given in pipeline.md.
+   To dispatch:
      aristotle/bin/make-submission.sh aristotle/call<N>-<slug>
      aristotle submit "$(cat aristotle/call<N>-<slug>/prompt.md)" \
        --project-dir aristotle/call<N>-<slug>/submission
    A call whose prompt.md does not exist yet is NOT ready — leave it and report that the
    user needs to author it rather than inventing one. Record the new Project ID and Task
-   ID in status.md, commit, push.
+   ID in status.md, set Status: IN_PROGRESS, commit, push.
 
 8. TERMINATION. When every call in the pipeline.md table has `Merged: yes` or
    `Status: STUCK`, post a short summary of the final sorry count and axiom status,

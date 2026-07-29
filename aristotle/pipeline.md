@@ -2,132 +2,174 @@
 
 Formalize the thin-B subsection of `tex/v5.tex` (§"Thin-B correspondences" and its
 appendix §"Proofs for sec:existence-thinB") into the `sorry` targets already stated in
-`lean/CPDLinear/ThinB.lean` and `lean/CPDLinear/ThinBExistence.lean`.
+`lean/CPDLinear/ThinB.lean`, `lean/CPDLinear/ThinBExistence.lean` and
+`lean/CPDLinear/BetweennessOrderUSC.lean`.
 
 The targets are **already stated** in the repo. Aristotle never invents a statement; it
 fills in proof bodies. This keeps the README's TeX↔Lean coverage invariant intact and
 makes the statement-fidelity check mechanical (`git diff` must touch proof bodies only).
 
-## How a call works
+## The two facts that shape the whole schedule
 
-One call = one `aristotle submit`, run **one at a time** (concurrency cap 1). Aristotle
-is cheap but slow, and it does markedly better when told exactly which declarations to
-close and which proof to follow, so each call carries the corresponding appendix proof
-transcribed into Lean-facing steps.
+1. **Aristotle returns whole files.** Two concurrent calls editing the same file would
+   leave us splicing two independent rewrites of it. So *file ownership is the unit of
+   concurrency*: at most one in-flight call per file.
+2. **A Lean proof may cite a lemma that is still `sorry`.** Because every statement in
+   this pipeline already exists and is frozen, a downstream call can be proved against
+   upstream lemmas before those lemmas are proved. So *dependencies do not serialize the
+   queue* — only file ownership does.
 
-Every submission bundles **the full Lean project plus the paper**:
+Together these give three independent **lanes**, which is exactly the concurrency cap:
 
-- the whole `lean/` tree minus `.lake/` (the thin-B targets sit on top of the proved
-  single-valued machinery — `BetweennessOrder`, `Restriction`, `Coalition`, … — and the
-  prover needs to read it);
-- `SPECIFICATION.tex` = a copy of `tex/v5.tex`;
-- `TASK.md` = a copy of the call's `prompt.md`.
+| Lane | File(s) owned | Calls, in order |
+|---|---|---|
+| **A** | `ThinB.lean` | call1 → call2 |
+| **B** | `ThinBExistence.lean` | call3 → call4 → call5 → call6 |
+| **C** | `BetweennessOrderUSC.lean`, `BetweennessRank.lean`, `BetweennessOrder.lean` | call8 |
 
-Aristotle rebuilds against its own matched mathlib v4.28.0, so `.lake/` is excluded.
-Note the SDK force-includes `.lake` even when `.gitignore` lists it, so the exclusion
-must happen in the bundling step — that is what `bin/make-submission.sh` is for.
+Lane B is the critical path (four serial calls), so **lane B must never idle**.
 
-```sh
-aristotle/bin/make-submission.sh aristotle/call1-thinB-def
-aristotle submit "$(cat aristotle/call1-thinB-def/prompt.md)" \
-  --project-dir aristotle/call1-thinB-def/submission
+## Dispatch rule — follow this exactly
+
+At every tick, after processing returns:
+
+1. Compute in-flight = calls with a Project ID and `Merged: no`. Cap is **3**.
+2. A call is **dispatchable** iff its lane has no in-flight call *and* its `prompt.md`
+   exists. Nothing else blocks it — not unproved dependencies.
+3. While in-flight < 3 and some call is dispatchable, dispatch by this priority:
+   **lane B first, then lane A, then lane C.** Lane B is the long pole; a tick that
+   leaves lane B idle while dispatching elsewhere is a scheduling error.
+4. Never dispatch two calls that own a common file, and never dispatch a call whose
+   `prompt.md` is missing — report that instead of inventing one.
+
+Concretely, the intended sequence from the current state:
+
+```
+now:              call1 (A)   call3 (B)   call8 (C)        <- 3 in flight
+call3 returns  -> call4 (B) dispatched immediately
+call1 returns  -> call2 (A) dispatched
+call4 returns  -> call5 (B)
+call5 returns  -> call6 (B)   [prefer call8 merged first, but do not block]
+call8 returns  -> lane C done
 ```
 
-Record the `Project created: <UUID>` in the call's `status.md`, commit, push.
+Total 8 calls; wall-clock ≈ the length of lane B, not the sum of all eight.
 
-## Per-call prompt contract
+## Anti-stall design — why each prompt is shaped as it is
 
-Every `prompt.md` must contain, in this order:
+Aristotle gets stuck when a call is large, open-ended, or requires it to rediscover
+something the repo already contains. Every prompt therefore carries:
 
-1. **Scope** — the exact list of declarations to close, by full name and file.
-2. **Pointer into `SPECIFICATION.tex`** — the definition/lemma labels and the appendix
-   subsection holding the proof, with an instruction to read it before writing Lean.
-3. **The mathematics** — the appendix proof restated step by step in Lean-facing terms
-   (names of the actual defs, the shape of each induction/limit argument).
-4. **Rules** — the four that matter:
-   - do not change any statement (signatures byte-for-byte; only bodies after `:=`);
-   - do not touch any other file;
-   - leave every other `sorry` in the project alone (they are later calls);
-   - keep `ThinB.lean` importing only `CPDLinear.Game` so it stays **axiom-free**
-     (`#print axioms` must not show `CPDLinear.kakutani`).
+- **One appendix subsection of scope**, 1–3 target declarations. No call is open-ended.
+- **A pointer to the proved single-valued analogue to mirror.** This is the single
+  biggest lever: `thinB_attained` / `thinB_merging` / `thinB_existence` have conclusions
+  *identical* to `btw_attained` / `btw_merging` / `two_B_existence` in
+  `BetweennessCore.lean` and `BetweennessOrder.lean`, differing only in hypotheses. The
+  prompts say so and give the substitution table.
+- **The appendix proof restated in Lean-facing terms**, naming the actual definitions.
+- **An explicit "lemmas you may assume" section** — the frozen statements it may cite
+  while they are still `sorry`, with an instruction not to prove or delete them.
+- **A "traps" section** listing the known wrong routes: replacing `V` by `{vbar}`
+  (fails `A4`), recomputing `thinB` on a smaller simplex (loses ambient cluster values),
+  assuming `vbar` is continuous, and using `btw_order` instead of `btw_order_usc`.
+- **A partial-credit clause** naming which target to sacrifice if blocked, so one hard
+  declaration cannot stall a whole call.
+- **Four standing rules**: don't change statements; don't touch other files; leave other
+  `sorry`s alone; keep `ThinB.lean` axiom-free.
 
-## Return protocol (per call)
+## Call table
 
-1. Poll — never `aristotle show`, never `--wait`:
-   `aristotle tasks <project-id>`  (or `/projects/lean/practice/bin/ari-wait <id>`).
-2. On a terminal status, fetch into `call<N>-<slug>/solution`:
-   `rm -rf call<N>-<slug>/solution*` first (a stale dir makes it refuse), then
-   `/projects/lean/practice/bin/ari-fetch <project-id> aristotle/call<N>-<slug>/solution`.
-3. The extracted top directory name **varies** (`submission_aristotle` for a first
-   submit, `output-final_aristotle` after an `ask`). Locate the file by search:
-   `find …/solution -path '*CPDLinear/ThinB.lean'`. Copy **only** the target file(s)
-   back into `lean/CPDLinear/`.
-4. **Statement-fidelity gate** — `git diff lean/CPDLinear/` must show changes to proof
-   bodies and new auxiliary lemmas only. Any edit to a target's signature, or to a
-   definition, fails the gate: do not merge, report to the user, let them decide.
-5. **Verify locally** — this is not optional; Aristotle's server-side check is not a
-   substitute for our mathlib pin:
-   - `cd lean && lake build` (must succeed),
-   - the call's targets no longer appear in the `declaration uses 'sorry'` warnings,
-     and the remaining count is exactly what it should be,
-   - `#print axioms` on the call's headline declaration — expect `propext`,
-     `Classical.choice`, `Quot.sound`, and `CPDLinear.kakutani` only where the target
-     genuinely goes through PBE existence (nothing in `ThinB.lean` may show it).
-6. **Badge the writeup** — flip that result's badge in `tex/v5.tex` from
-   `\leanpending{…}` to `\leanproved{…}` (or `\leanmixed{…}{…}` if only part closed).
-   The badge macros are defined at the top of `v5.tex`.
-7. Update `status.md`, `git commit` + `git push origin main`.
-8. Only then start the next call.
+| N | Call | Lane | Targets | TeX |
+|---|------|------|---------|-----|
+| 1 | `call1-thinB-def` | A | `IsBetweenness.bddOn_simplex`, `thinB_eq_Icc`, `thinB_A4` | `dfn:thinB`, `lem:thinB-A4` |
+| 2 | `call2-envelopes-common` | A | `thinBUpper_isBetweenness`, `thinBLower_isBetweenness`, `thinB_common_value` | `lem:thinB-envelope-B`, `prop:thinB-common-value` |
+| 3 | `call3-bridge` | B | `IsThinB.betweenness`, `IsThinB.hasCommonValueIntersections`, `HasCommonValueIntersections.of_subgame` | game-level transport |
+| 4 | `call4-payoff-normalize` | B | `thinB_coalition_payoff_set`, `exists_upperNormalizedPBE`, `thinB_upperNormalizedPBE_subgame` | `lem:thinB-value-set`, `prop:thinB-upper-pbe` |
+| 5 | `call5-attained-merging` | B | `thinB_attained`, `thinB_merging` | `lem:thinB-attained`, `lem:thinB-merging` |
+| 6 | `call6-crown` | B | `thinB_existence` | `thm:thinB-cppbe` |
+| 8 | `call8-btw-order-usc` | C | `btw_order_usc` | `lem:btw-order`, u.s.c. form |
 
-If the task comes back `COMPLETE_WITH_ERRORS` or with the targets still `sorry`, resume
-the **same** project with `aristotle ask <project-id> "<follow-up>"` — do **not** cancel
-and resubmit, and do not bundle extra targets into a running call.
+(There is no call 7; the numbering predates the lane redesign and calls 1 and 8 were
+already submitted under these names.)
 
-## Call queue
-
-Order follows the proof order fixed in `README.md`. Later calls consume the lemmas
-closed by earlier ones, so they are not reorderable.
-
-| N | Call | Targets (file) | TeX |
-|---|------|----------------|-----|
-| 1 | `call1-thinB-def` | `IsBetweenness.bddOn_simplex`, `thinB_eq_Icc`, `thinB_A4` (ThinB) | `dfn:thinB`, `lem:thinB-A4` |
-| 2 | `call2-envelopes` | `thinBUpper_isBetweenness`, `thinBLower_isBetweenness` (ThinB); `IsThinB.betweenness` (ThinBExistence) | `lem:thinB-envelope-B` |
-| 3 | `call3-common-value` | `thinB_common_value` (ThinB); `IsThinB.hasCommonValueIntersections`, `HasCommonValueIntersections.of_subgame` (ThinBExistence) | `prop:thinB-common-value` |
-| 4 | `call4-value-set` | `thinB_coalition_payoff_set` | `lem:thinB-value-set` |
-| 5 | `call5-upper-pbe` | `exists_upperNormalizedPBE`, `thinB_upperNormalizedPBE_subgame` | `prop:thinB-upper-pbe` |
-| 6 | `call6-attained` | `thinB_attained` | `lem:thinB-attained` |
-| 7 | `call7-merging` | `thinB_merging` | `lem:thinB-merging` |
-| 8 | `call8-btw-order-usc` | `btw_order_usc` (BetweennessOrderUSC) | `lem:btw-order`, u.s.c. form |
-| 9 | `call9-existence` | `thinB_existence` | `thm:thinB-cppbe` |
-
-Deviation from the README order, deliberate: `thinB_eq_Icc` is listed there under step 2,
-but the appendix proof of `lem:thinB-A4` establishes it as its own Step 2
-(equation `eq:thinB-interval`) and `thinB_A4` cannot be proved without it. Keeping the
-two together makes call 1 exactly one appendix subsection.
-
-Call 8 is the hard one. As of commit `36c3e4f` the continuity hypothesis was removed
-from the existence theorem and the former conjecture `conj:thinB-cppbe` became
-`thm:thinB-cppbe`; what carries that is the new upper-semicontinuous ranking lemma
-`btw_order_usc`, whose geometric step (strict lower set relatively open in the face ⇒
-same affine span ⇒ a constant pencil member forces both separators to vanish,
-contradicting proper separation) is stated in `BetweennessOrderUSC.lean` and in the
-appendix. Expect it to need more than one `ask`.
-
-Watch the restriction convention throughout calls 5–9: auxiliary games keep the
-**ambient** correspondence restricted to their face. Recomputing `thinB` on the smaller
-simplex is wrong — it discards cluster values visible only from ambient directions —
-which is exactly why `HasCommonValueIntersections.of_subgame` exists. Every prompt from
-call 5 on must say so.
+Call 8 is the hardest. Continuity enters the existing ranking construction in exactly one
+place — the final step of `pencil_hgood` (`BetweennessRank.lean` ~line 711), which lets
+`α → 0` along a segment. Upper semicontinuity **cannot** patch that step: it yields
+`limsup ≤ vbar u`, the wrong direction. The paper replaces it with an affine-span
+argument (u.s.c. ⇒ `L⁻⁻` relatively open ⇒ `aff B_F = aff F` ⇒ a constant pencil member
+forces both separators to vanish, contradicting proper separation). Call 8 is the one
+sanctioned exception to "do not touch other files": it may generalize `hcont → husc` in
+`BetweennessRank.lean` rather than duplicate ~400 lines, under the gates that
+`two_B_existence` stays proof-complete and `btw_order`'s public statement is unchanged.
 
 The three `sorry`s in `lean/CPDLinear/BetweennessPending.lean` (the plain-B-plus-
-genericity branch of `thm:two`) are a **separate track**, not part of the thin-B queue.
+genericity branch of `thm:two`) are a **separate track**, not part of this queue.
 
 ## Sorry budget
 
 Baseline at commit `71fccec`: **19** `declaration uses 'sorry'` warnings, `lake build`
-exit 0 (8056 jobs). After each merged call the count must drop by exactly the number of
-targets in that call, and by nothing else. The end state of the queue is 3 (the
-`BetweennessPending` track).
+exit 0 (8056 jobs). Each merged call must drop the count by exactly its number of
+targets and by nothing else:
+
+| after | call | delta | total |
+|---|---|---|---|
+| — | baseline | — | 19 |
+| | call1 | −3 | 16 |
+| | call3 | −3 | 13 |
+| | call2 | −3 | 10 |
+| | call4 | −3 | 7 |
+| | call5 | −2 | 5 |
+| | call8 | −1 | 4 |
+| | call6 | −1 | 3 |
+
+End state: **3** — the `BetweennessPending` track. (The order of the middle rows depends
+on return order; only the arithmetic is fixed.)
+
+Axiom expectations: everything in `ThinB.lean` must stay
+`propext, Classical.choice, Quot.sound` — that file imports only `CPDLinear.Game` and
+must never reach `CPDLinear.kakutani`. `exists_upperNormalizedPBE`, `thinB_existence` and
+anything else routed through `exists_PBE` will legitimately show `CPDLinear.kakutani`.
+
+## How a call works
+
+```sh
+aristotle/bin/make-submission.sh aristotle/call<N>-<slug>
+aristotle submit "$(cat aristotle/call<N>-<slug>/prompt.md)" \
+  --project-dir aristotle/call<N>-<slug>/submission
+```
+
+Every submission bundles the whole `lean/` tree minus `.lake/`, plus `SPECIFICATION.tex`
+(a copy of `tex/v5.tex`) and `TASK.md` (a copy of the prompt). Aristotle rebuilds against
+its own matched mathlib v4.28.0, so `.lake/` is excluded — and it must be excluded *in
+the bundler*, because the SDK force-includes `.lake` even when `.gitignore` lists it.
+The "no .lake folder" warning on submit is expected and harmless.
+
+Record the `Project created: <UUID>` in the call's `status.md`, commit, push.
+
+## Return protocol (per call)
+
+1. Poll — never `aristotle show`, never `--wait`, never `aristotle cancel`:
+   `aristotle tasks <project-id>`.
+2. On a terminal status, fetch into `call<N>-<slug>/solution`:
+   `rm -rf call<N>-<slug>/solution*` first (a stale dir makes it refuse), then
+   `/projects/lean/practice/bin/ari-fetch <project-id> aristotle/call<N>-<slug>/solution`.
+3. The extracted top directory name **varies** (`submission_aristotle` for a first
+   submit, `output-final_aristotle` after an `ask`). Locate files by search. Copy back
+   **only the files that call's lane owns**.
+4. **Statement-fidelity gate** — `git diff lean/CPDLinear/` must show proof bodies and
+   new auxiliary lemmas only. Any edit to a target's signature, to a definition, or to
+   `btw_order`'s public statement fails the gate.
+5. **Verify locally** — `lake build` exit 0; the call's targets gone from the `sorry`
+   warnings; the total delta exactly as tabulated; `two_B_existence` still proof-complete;
+   `#print axioms` as expected above.
+6. **Badge** `tex/v5.tex`: `\leanpending{…}` → `\leanproved{…}`, only when every Lean
+   declaration named in that badge is proof-complete.
+7. Update `status.md`, commit, push. Then dispatch per the rule above.
+
+On failure: `git checkout -- lean/CPDLinear/` to keep the repo green, bump `Retries`,
+and resume the **same** project with `aristotle ask <project-id> "<what failed>"` — never
+cancel and resubmit, never bundle extra targets into a running call. Three strikes →
+`Status: STUCK`, leave for the user.
 
 ## Layout
 
@@ -135,12 +177,12 @@ targets in that call, and by nothing else. The end state of the queue is 3 (the
 aristotle/
   pipeline.md                  # this file
   bin/make-submission.sh       # bundle lean/ + v5.tex + prompt for one call
+  bin/cron-prompt.txt          # the 30-minute poller's instructions
   call<N>-<slug>/
     prompt.md                  # the verbatim Aristotle prompt
-    status.md                  # project id, task id, status, merged, result
+    status.md                  # lane, targets, owned files, ids, status, merged
     submission/                # built by make-submission.sh (gitignored)
     solution/                  # fetched by ari-fetch (gitignored)
 ```
 
-Shared lifecycle helpers live in `/projects/lean/practice/bin/`
-(`ari-fetch`, `ari-wait`).
+Shared lifecycle helpers live in `/projects/lean/practice/bin/` (`ari-fetch`, `ari-wait`).
