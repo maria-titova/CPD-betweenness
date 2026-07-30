@@ -38,13 +38,13 @@ def SingleValued : Prop :=
 /-! ## Private infrastructure for the core lemmas -/
 
 /-- Restriction does not change the upper envelope. -/
-private lemma btwc_restrict_vbar {R : Finset T} (hne : R.Nonempty) (hsub : R ⊆ G.Θ)
+lemma btwc_restrict_vbar {R : Finset T} (hne : R.Nonempty) (hsub : R ⊆ G.Θ)
     (μ : T → ℝ) : (G.restrict R hne hsub).vbar μ = G.vbar μ := rfl
 
 /-
 Single-valuedness is inherited by restricted games.
 -/
-private lemma btwc_restrict_singleValued {R : Finset T} (hne : R.Nonempty)
+lemma btwc_restrict_singleValued {R : Finset T} (hne : R.Nonempty)
     (hsub : R ⊆ G.Θ) (hSV : G.SingleValued) :
     (G.restrict R hne hsub).SingleValued := by
   intro μ hμ
@@ -55,7 +55,7 @@ private lemma btwc_restrict_singleValued {R : Finset T} (hne : R.Nonempty)
 /-
 The restricted conditional prior on a subset agrees with `G`'s.
 -/
-private lemma btwc_restrict_condPrior {R : Finset T} (hne : R.Nonempty)
+lemma btwc_restrict_condPrior {R : Finset T} (hne : R.Nonempty)
     (hsub : R ⊆ G.Θ) {C : Finset T} (hC : C.Nonempty) (hCR : C ⊆ R) :
     (G.restrict R hne hsub).condPrior C = G.condPrior C := by
   ext θ;
@@ -66,7 +66,7 @@ private lemma btwc_restrict_condPrior {R : Finset T} (hne : R.Nonempty)
 
 /-- Bayes plausibility: the prior is the average of the induced beliefs, with
 weights summing to one. -/
-private lemma btwc_bayes {H : DisclosureGame T Msg} (s : Strategy H) :
+lemma btwc_bayes {H : DisclosureGame T Msg} (s : Strategy H) :
     (∀ θ, H.μ0 θ
         = ∑ m ∈ Finset.univ.filter (fun m => m ∈ s.evidence),
             s.onPathProb m * s.belief m θ) ∧
@@ -98,7 +98,7 @@ private lemma btwc_bayes {H : DisclosureGame T Msg} (s : Strategy H) :
 Under betweenness, sub-level sets of `v̄` are convex (the upper half of
 betweenness).
 -/
-private lemma btwc_sublevel_convex (hB : G.Betweenness) (c : ℝ) :
+lemma btwc_sublevel_convex (hB : G.Betweenness) (c : ℝ) :
     Convex ℝ {μ : T → ℝ | μ ∈ simplexOn G.Θ ∧ G.vbar μ ≤ c} := by
   intro μ hμ ν hν a b ha hb hab;
   by_cases ha0 : a = 0;
@@ -112,7 +112,7 @@ private lemma btwc_sublevel_convex (hB : G.Betweenness) (c : ℝ) :
 Finite betweenness (upper): `v̄` of a convex combination is bounded above by
 the max of the values.
 -/
-private lemma btwc_convexCombo_le (hB : G.Betweenness) {E : Finset Msg}
+lemma btwc_convexCombo_le (hB : G.Betweenness) {E : Finset Msg}
     (x : Msg → (T → ℝ)) (a : Msg → ℝ)
     (hx : ∀ m ∈ E, x m ∈ simplexOn G.Θ)
     (ha : ∀ m ∈ E, 0 ≤ a m) (hsum : ∑ m ∈ E, a m = 1)
@@ -126,7 +126,7 @@ private lemma btwc_convexCombo_le (hB : G.Betweenness) {E : Finset Msg}
 /-
 Finite quasiconcavity: `v̄` of a convex combination dominates the min.
 -/
-private lemma btwc_convexCombo_ge (hQC : G.QC) {E : Finset Msg}
+lemma btwc_convexCombo_ge (hQC : G.QC) {E : Finset Msg}
     (x : Msg → (T → ℝ)) (a : Msg → ℝ)
     (hx : ∀ m ∈ E, x m ∈ simplexOn G.Θ)
     (ha : ∀ m ∈ E, 0 ≤ a m) (hsum : ∑ m ∈ E, a m = 1)
@@ -146,7 +146,7 @@ private lemma btwc_convexCombo_ge (hQC : G.QC) {E : Finset Msg}
 The conditional prior of a coalition cell decomposes as the average of the
 coalition-induced beliefs over the on-path messages.
 -/
-private lemma btwc_condPrior_decomp {H : DisclosureGame T Msg} (K : H.Coalition) :
+lemma btwc_condPrior_decomp {H : DisclosureGame T Msg} (K : H.Coalition) :
     H.condPrior K.C = fun θ =>
       ∑ m ∈ Finset.univ.filter (fun m => m ∈ K.σ.evidence),
         K.σ.onPathProb m * K.σ.coalitionBelief m θ := by
@@ -161,7 +161,7 @@ private lemma btwc_condPrior_decomp {H : DisclosureGame T Msg} (K : H.Coalition)
 /-
 The conditional prior on a disjoint union is a convex combination.
 -/
-private lemma btwc_condPrior_union {C D : Finset T}
+lemma btwc_condPrior_union {C D : Finset T}
     (hC : C.Nonempty) (hD : D.Nonempty) (hCΘ : C ⊆ G.Θ) (hDΘ : D ⊆ G.Θ)
     (hdisj : Disjoint C D) :
     ∃ l ∈ Set.Ioo (0 : ℝ) 1,
@@ -187,7 +187,7 @@ private lemma btwc_condPrior_union {C D : Finset T}
 /-
 A relative preimage of a non-empty set of available messages is non-empty.
 -/
-private lemma btwc_preimage_nonempty {R : Finset T} {X : Finset Msg}
+lemma btwc_preimage_nonempty {R : Finset T} {X : Finset Msg}
     (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     (preimage G.M R X).Nonempty := by
   obtain ⟨ m, hm ⟩ := hXne;
@@ -198,7 +198,7 @@ private lemma btwc_preimage_nonempty {R : Finset T} {X : Finset Msg}
 For a coalition of `G|_R`, its cell is the relative preimage of a non-empty
 finite set of available messages (the evidence, intersected with `𝓜_R`).
 -/
-private lemma btwc_exists_evidence_finset {R : Finset T} (hne : R.Nonempty)
+lemma btwc_exists_evidence_finset {R : Finset T} (hne : R.Nonempty)
     (hsub : R ⊆ G.Θ) (K : Coalition (G.restrict R hne hsub)) :
     ∃ X : Finset Msg, X ⊆ G.restrictMsgSpace R ∧ X.Nonempty ∧
       preimage G.M R X = K.C := by
@@ -223,7 +223,7 @@ private lemma btwc_exists_evidence_finset {R : Finset T} (hne : R.Nonempty)
 /-
 On-path probabilities are non-negative.
 -/
-private lemma btwc_onPathProb_nonneg {H : DisclosureGame T Msg} (s : Strategy H)
+lemma btwc_onPathProb_nonneg {H : DisclosureGame T Msg} (s : Strategy H)
     (m : Msg) : 0 ≤ s.onPathProb m := by
   apply Finset.sum_nonneg;
   exact fun i hi => mul_nonneg ( H.μ0_mem.1 i ) ( s.mem i hi |>.1 m )
@@ -231,7 +231,7 @@ private lemma btwc_onPathProb_nonneg {H : DisclosureGame T Msg} (s : Strategy H)
 /-
 The coalition-induced belief at an on-path message lies in the full simplex.
 -/
-private lemma btwc_coalitionBelief_mem {H : DisclosureGame T Msg} (K : H.Coalition)
+lemma btwc_coalitionBelief_mem {H : DisclosureGame T Msg} (K : H.Coalition)
     {m : Msg} (hm : m ∈ K.σ.evidence) : K.σ.coalitionBelief m ∈ simplexOn H.Θ := by
   convert zeroExt_mem_simplex (DisclosureGame.Coalition.C_subset K) _;
   exact K.σ.belief_mem_simplex hm
@@ -240,7 +240,7 @@ private lemma btwc_coalitionBelief_mem {H : DisclosureGame T Msg} (K : H.Coaliti
 Under single-valued `V`, every on-path coalition belief has upper-envelope
 value equal to the coalition payoff.
 -/
-private lemma btwc_value_eq {H : DisclosureGame T Msg} (hSV : H.SingleValued)
+lemma btwc_value_eq {H : DisclosureGame T Msg} (hSV : H.SingleValued)
     (K : H.Coalition) {m : Msg} (hm : m ∈ K.σ.evidence) :
     H.vbar (K.σ.coalitionBelief m) = K.w := by
   have h_mem := K.payoff m hm;
@@ -249,7 +249,7 @@ private lemma btwc_value_eq {H : DisclosureGame T Msg} (hSV : H.SingleValued)
 /-
 Under single-valued `V`, the lower envelope equals the upper envelope.
 -/
-private lemma btwc_vbar_eq_vlow (hSV : G.SingleValued) {μ : T → ℝ}
+lemma btwc_vbar_eq_vlow (hSV : G.SingleValued) {μ : T → ℝ}
     (hμ : μ ∈ simplexOn G.Θ) : G.vlow μ = G.vbar μ := by
   convert Set.ext_iff.mp ( hSV μ hμ ) ( G.vbar μ ) using 1 ; simp +decide [ CPDLinear.DisclosureGame.vlow ];
   constructor <;> intro h <;> have := hSV μ hμ <;> aesop ( simp_config := { singlePass := true } ) ;
@@ -271,7 +271,7 @@ lemma btwc_vbar_continuousOn (hSV : G.SingleValued) :
 
 /-- The single-message pooling coalition (MC-free): everyone able to send `m`
 sends `m`. Mirrors `pooling_coalition` (private, in Existence.lean). -/
-private lemma btwc_pooling_coalition (H : DisclosureGame T Msg) {m : Msg} (hm : m ∈ H.𝓜) :
+lemma btwc_pooling_coalition (H : DisclosureGame T Msg) {m : Msg} (hm : m ∈ H.𝓜) :
     ∃ K : Coalition H, K.C = H.canSend m ∧
       K.w = H.vbar (H.condPrior (H.canSend m)) := by
   set C := H.canSend m
@@ -304,7 +304,7 @@ private lemma btwc_pooling_coalition (H : DisclosureGame T Msg) {m : Msg} (hm : 
     · rw [ zeroExt_eq_self ( DisclosureGame.condPrior_mem_simplex hC_nonempty hC_subset ) ]
 
 /-- `v̄(μ⁰_{P(m)})` is an attainable coalition payoff. Mirrors `vbar_pooling_mem`. -/
-private lemma btwc_pooling_mem (H : DisclosureGame T Msg) {m : Msg} (hm : m ∈ H.𝓜) :
+lemma btwc_pooling_mem (H : DisclosureGame T Msg) {m : Msg} (hm : m ∈ H.𝓜) :
     H.vbar (H.condPrior (H.canSend m)) ∈ H.coalitionPayoffs := by
   obtain ⟨K, _, hKw⟩ := btwc_pooling_coalition H hm
   exact ⟨K, hKw⟩
@@ -312,7 +312,7 @@ private lemma btwc_pooling_mem (H : DisclosureGame T Msg) {m : Msg} (hm : m ∈ 
 /-- **Single-message pooling (MC-free).** For an available message `m`, the
 pooling value on its relative preimage cell is an attainable coalition payoff of
 `G|_R`: everyone in `M⁻¹_R({m})` sends `m`, inducing belief `μ⁰_{M⁻¹_R({m})}`. -/
-private lemma btwc_single_pool_mem {R : Finset T} (hne : R.Nonempty) (hsub : R ⊆ G.Θ)
+lemma btwc_single_pool_mem {R : Finset T} (hne : R.Nonempty) (hsub : R ⊆ G.Θ)
     {m : Msg} (hm : m ∈ G.restrictMsgSpace R) :
     G.vbar (G.condPrior (preimage G.M R {m})) ∈
       (G.restrict R hne hsub).coalitionPayoffs := by
@@ -329,13 +329,13 @@ private lemma btwc_single_pool_mem {R : Finset T} (hne : R.Nonempty) (hsub : R �
 /-! ## Auxiliary game and realization (`btwc_key_le`) infrastructure -/
 
 /-- `M⁻¹_R(X) ⊆ R`. -/
-private lemma btwcAux_preimage_subset {R : Finset T} {X : Finset Msg} :
+lemma btwcAux_preimage_subset {R : Finset T} {X : Finset Msg} :
     preimage G.M R X ⊆ R := Finset.filter_subset _ _
 
 /-
 Cover condition for the auxiliary game `G'`: `X = ⋃_{θ ∈ M⁻¹_R(X)} (M θ ∩ X)`.
 -/
-private lemma btwcAux_cover {R : Finset T}
+lemma btwcAux_cover {R : Finset T}
     {X : Finset Msg} (hX : X ⊆ G.restrictMsgSpace R) :
     (↑X : Set Msg) = ⋃ θ ∈ preimage G.M R X, ((G.M θ ∩ X : Finset Msg) : Set Msg) := by
   ext m; simp [preimage];
@@ -345,7 +345,7 @@ private lemma btwcAux_cover {R : Finset T}
 /-- **The auxiliary game `G'`** (writeup: cut the message space to `X`).
 `G'.Θ := M⁻¹_R(X)`, `G'.𝓜 := X`, `G'.M θ := M θ ∩ X`, `G'.μ⁰ := μ⁰_{M⁻¹_R(X)}`,
 `G'.V := G.V`. -/
-private noncomputable def btwcAux {R : Finset T} (hsub : R ⊆ G.Θ)
+noncomputable def btwcAux {R : Finset T} (hsub : R ⊆ G.Θ)
     {X : Finset Msg} (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     DisclosureGame T Msg where
   Θ := preimage G.M R X
@@ -368,35 +368,35 @@ private noncomputable def btwcAux {R : Finset T} (hsub : R ⊆ G.Θ)
     G.V_ordConnected μ (simplexOn_mono (btwcAux_preimage_subset.trans hsub) hμ)
   V_uhc := G.V_uhc.mono (simplexOn_mono (btwcAux_preimage_subset.trans hsub))
 
-@[simp] private lemma btwcAux_Θ {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
+@[simp] lemma btwcAux_Θ {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
     (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     (btwcAux hsub hX hXne).Θ = preimage G.M R X := rfl
 
-@[simp] private lemma btwcAux_M {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
+@[simp] lemma btwcAux_M {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
     (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     (btwcAux hsub hX hXne).M = fun θ => G.M θ ∩ X := rfl
 
-@[simp] private lemma btwcAux_𝓜 {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
+@[simp] lemma btwcAux_𝓜 {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
     (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     (btwcAux hsub hX hXne).𝓜 = X := rfl
 
-@[simp] private lemma btwcAux_V {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
+@[simp] lemma btwcAux_V {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
     (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     (btwcAux hsub hX hXne).V = G.V := rfl
 
-@[simp] private lemma btwcAux_μ0 {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
+@[simp] lemma btwcAux_μ0 {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
     (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     (btwcAux hsub hX hXne).μ0 = G.condPrior (preimage G.M R X) := rfl
 
 /-- `G'` has the same upper envelope as `G`. -/
-private lemma btwcAux_vbar {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
+lemma btwcAux_vbar {R : Finset T} (hsub : R ⊆ G.Θ) {X : Finset Msg}
     (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) (μ : T → ℝ) :
     (btwcAux hsub hX hXne).vbar μ = G.vbar μ := rfl
 
 /-
 `G'` inherits single-valuedness of `V`.
 -/
-private lemma btwcAux_singleValued (hSV : G.SingleValued) {R : Finset T} (hsub : R ⊆ G.Θ)
+lemma btwcAux_singleValued (hSV : G.SingleValued) {R : Finset T} (hsub : R ⊆ G.Θ)
     {X : Finset Msg} (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     (btwcAux hsub hX hXne).SingleValued := by
   intro μ hμ;
@@ -406,7 +406,7 @@ private lemma btwcAux_singleValued (hSV : G.SingleValued) {R : Finset T} (hsub :
 /-
 `G'` inherits betweenness.
 -/
-private lemma btwcAux_betweenness (hB : G.Betweenness) {R : Finset T} (hsub : R ⊆ G.Θ)
+lemma btwcAux_betweenness (hB : G.Betweenness) {R : Finset T} (hsub : R ⊆ G.Θ)
     {X : Finset Msg} (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     (btwcAux hsub hX hXne).Betweenness := by
   intro μ hμ μ' hμ' l hl;
@@ -415,7 +415,7 @@ private lemma btwcAux_betweenness (hB : G.Betweenness) {R : Finset T} (hsub : R 
 /-
 Conditioning `G'`'s prior further on `C ⊆ M⁻¹_R(X)` agrees with `G`'s.
 -/
-private lemma btwcAux_condPrior {R : Finset T} (hsub : R ⊆ G.Θ)
+lemma btwcAux_condPrior {R : Finset T} (hsub : R ⊆ G.Θ)
     {X : Finset Msg} (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty)
     {C : Finset T} (hCne : C.Nonempty) (hCsub : C ⊆ preimage G.M R X) :
     (btwcAux hsub hX hXne).condPrior C = G.condPrior C := by
@@ -428,7 +428,7 @@ private lemma btwcAux_condPrior {R : Finset T} (hsub : R ⊆ G.Θ)
 /-
 Evidence depends only on the type space and strategy function.
 -/
-private lemma btwc_evidence_congr {g₁ g₂ : DisclosureGame T Msg} (hΘ : g₁.Θ = g₂.Θ)
+lemma btwc_evidence_congr {g₁ g₂ : DisclosureGame T Msg} (hΘ : g₁.Θ = g₂.Θ)
     (s₁ : Strategy g₁) (s₂ : Strategy g₂) (hσ : s₁.σ = s₂.σ) :
     s₁.evidence = s₂.evidence := by
   simp [Strategy.evidence, hσ];
@@ -437,14 +437,14 @@ private lemma btwc_evidence_congr {g₁ g₂ : DisclosureGame T Msg} (hΘ : g₁
 /-
 The coalition-induced belief depends only on the type space, prior, and strategy.
 -/
-private lemma btwc_coalitionBelief_congr {g₁ g₂ : DisclosureGame T Msg} (hΘ : g₁.Θ = g₂.Θ)
+lemma btwc_coalitionBelief_congr {g₁ g₂ : DisclosureGame T Msg} (hΘ : g₁.Θ = g₂.Θ)
     (hμ0 : g₁.μ0 = g₂.μ0) (s₁ : Strategy g₁) (s₂ : Strategy g₂) (hσ : s₁.σ = s₂.σ) (m : Msg) :
     s₁.coalitionBelief m = s₂.coalitionBelief m := by
   unfold Strategy.coalitionBelief Strategy.belief Strategy.onPathProb;
   unfold zeroExt; aesop;
 
 /-- Raw version of `btwc_condPrior_decomp` for a bare cell strategy. -/
-private lemma btwc_condPrior_decomp_raw {H : DisclosureGame T Msg} {C : Finset T}
+lemma btwc_condPrior_decomp_raw {H : DisclosureGame T Msg} {C : Finset T}
     (hCne : C.Nonempty) (hCsub : C ⊆ H.Θ) (σ : Strategy (H.restrict C hCne hCsub)) :
     H.condPrior C = fun θ =>
       ∑ m ∈ Finset.univ.filter (fun m => m ∈ σ.evidence),
@@ -458,14 +458,14 @@ private lemma btwc_condPrior_decomp_raw {H : DisclosureGame T Msg} {C : Finset T
   · rw [ DisclosureGame.condPrior_of_not_mem ] <;> simp +decide [ hθ ]
 
 /-- Raw version of `btwc_coalitionBelief_mem` for a bare cell strategy. -/
-private lemma btwc_coalitionBelief_mem_raw {H : DisclosureGame T Msg} {C : Finset T}
+lemma btwc_coalitionBelief_mem_raw {H : DisclosureGame T Msg} {C : Finset T}
     (hCne : C.Nonempty) (hCsub : C ⊆ H.Θ) (σ : Strategy (H.restrict C hCne hCsub))
     {m : Msg} (hm : m ∈ σ.evidence) : σ.coalitionBelief m ∈ simplexOn H.Θ := by
   convert zeroExt_mem_simplex hCsub _
   exact σ.belief_mem_simplex hm
 
 /-- Raw version of `btwc_value_eq` for a bare cell strategy. -/
-private lemma btwc_value_eq_raw {H : DisclosureGame T Msg} (hSV : H.SingleValued)
+lemma btwc_value_eq_raw {H : DisclosureGame T Msg} (hSV : H.SingleValued)
     {C : Finset T} (hCne : C.Nonempty) (hCsub : C ⊆ H.Θ)
     (σ : Strategy (H.restrict C hCne hCsub)) (w : ℝ)
     (hpay : ∀ m ∈ σ.evidence, w ∈ H.V (σ.coalitionBelief m))
@@ -477,7 +477,7 @@ private lemma btwc_value_eq_raw {H : DisclosureGame T Msg} (hSV : H.SingleValued
 
 /-- **Value identification for a bare cell.** Under single-valued `V` and betweenness,
 any `(C, σ, w)` with the coalition payoff condition satisfies `w = v̄(μ⁰_C)`. -/
-private lemma btwc_cell_value {H : DisclosureGame T Msg} (hSV : H.SingleValued)
+lemma btwc_cell_value {H : DisclosureGame T Msg} (hSV : H.SingleValued)
     (hB : H.Betweenness) {C : Finset T} (hCne : C.Nonempty) (hCsub : C ⊆ H.Θ)
     (σ : Strategy (H.restrict C hCne hCsub)) (w : ℝ)
     (hpay : ∀ m ∈ σ.evidence, w ∈ H.V (σ.coalitionBelief m)) :
@@ -503,7 +503,7 @@ private lemma btwc_cell_value {H : DisclosureGame T Msg} (hSV : H.SingleValued)
 /-
 Zeroing a PBE strategy off `Θ` preserves the PBE property.
 -/
-private lemma btwc_isPBE_zero {H : DisclosureGame T Msg} {s : Strategy H} (hs : H.IsPBE s) :
+lemma btwc_isPBE_zero {H : DisclosureGame T Msg} {s : Strategy H} (hs : H.IsPBE s) :
     ∃ s' : Strategy H, H.IsPBE s' ∧ (∀ θ ∉ H.Θ, s'.σ θ = 0) := by
   -- By definition of $s'$, we know that $s' = s$ on $H.Θ$.
   obtain ⟨μ, r, h⟩ := hs
@@ -527,7 +527,7 @@ private lemma btwc_isPBE_zero {H : DisclosureGame T Msg} {s : Strategy H} (hs : 
     simpa [ hθ ] using h.seq_optimal θ hθ
 
 /-- `G'` admits a PBE partition; in particular a partition with non-increasing payoffs. -/
-private lemma btwcAux_exists_partition {R : Finset T} (hsub : R ⊆ G.Θ)
+lemma btwcAux_exists_partition {R : Finset T} (hsub : R ⊆ G.Θ)
     {X : Finset Msg} (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     ∃ P : Partition (btwcAux hsub hX hXne), Antitone P.w := by
   obtain ⟨s, hs⟩ := exists_PBE (btwcAux hsub hX hXne)
@@ -539,7 +539,7 @@ private lemma btwcAux_exists_partition {R : Finset T} (hsub : R ⊆ G.Θ)
 The conditional prior on a set `C` partitioned into disjoint nonempty cells is a
 positive convex combination of the conditional priors of the cells.
 -/
-private lemma btwc_condPrior_partition {C : Finset T} {n : ℕ} (D : Fin n → Finset T)
+lemma btwc_condPrior_partition {C : Finset T} {n : ℕ} (D : Fin n → Finset T)
     (hDne : ∀ i, (D i).Nonempty) (hDsub : ∀ i, D i ⊆ G.Θ)
     (hdisj : ∀ i j, i ≠ j → Disjoint (D i) (D j))
     (hCne : C.Nonempty) (hcover : C = Finset.univ.biUnion D) :
@@ -564,7 +564,7 @@ private lemma btwc_condPrior_partition {C : Finset T} {n : ℕ} (D : Fin n → F
 Finite (index-form) upper betweenness bound: `v̄` of a convex combination is
 bounded above by the common upper bound of the values.
 -/
-private lemma btwc_convexCombo_le_index (hB : G.Betweenness) {n : ℕ}
+lemma btwc_convexCombo_le_index (hB : G.Betweenness) {n : ℕ}
     (x : Fin n → (T → ℝ)) (a : Fin n → ℝ)
     (hx : ∀ i, x i ∈ simplexOn G.Θ) (ha : ∀ i, 0 ≤ a i) (hsum : ∑ i, a i = 1)
     {c : ℝ} (hc : ∀ i, G.vbar (x i) ≤ c) :
@@ -582,7 +582,7 @@ private lemma btwc_convexCombo_le_index (hB : G.Betweenness) {n : ℕ}
 /-
 The evidence used by a partition cell of `G'` consists of messages in `X`.
 -/
-private lemma btwc_cell_evidence_subset {R : Finset T} (hsub : R ⊆ G.Θ)
+lemma btwc_cell_evidence_subset {R : Finset T} (hsub : R ⊆ G.Θ)
     {X : Finset Msg} (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty)
     (P : Partition (btwcAux hsub hX hXne)) (t : Fin P.card) :
     ((P.σ t).evidence : Set Msg) ⊆ (X : Set Msg) := by
@@ -598,7 +598,7 @@ private lemma btwc_cell_evidence_subset {R : Finset T} (hsub : R ⊆ G.Θ)
 `M⁻¹_R(X)` (e.g. the first cell under `Antitone` payoffs) yields a coalition of
 `G|_R`, so its payoff is an attainable coalition payoff of `G|_R`.
 -/
-private lemma btwc_top_cell_mem {R : Finset T} (hne : R.Nonempty) (hsub : R ⊆ G.Θ)
+lemma btwc_top_cell_mem {R : Finset T} (hne : R.Nonempty) (hsub : R ⊆ G.Θ)
     {X : Finset Msg} (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty)
     (P : Partition (btwcAux hsub hX hXne)) (t : Fin P.card)
     (ht : thetaStep P.C t = preimage G.M R X) :
@@ -646,7 +646,7 @@ existence is a fixed-point-level statement.  The single-valued hypothesis makes
 message-completeness-free counterpart of the merging/max-cell machinery of
 `Betweenness.lean`, which that file documents as left open without message
 completeness. -/
-private lemma btwc_key_le (hSV : G.SingleValued) (hB : G.Betweenness)
+lemma btwc_key_le (hSV : G.SingleValued) (hB : G.Betweenness)
     {R : Finset T} (hne : R.Nonempty) (hsub : R ⊆ G.Θ)
     {X : Finset Msg} (hX : X ⊆ G.restrictMsgSpace R) (hXne : X.Nonempty) :
     G.vbar (G.condPrior (preimage G.M R X)) ≤
