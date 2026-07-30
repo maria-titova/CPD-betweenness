@@ -954,7 +954,159 @@ theorem thinBUpper_isBetweenness (Θ : Finset T) (hΘ : Θ.Nonempty)
 theorem thinBLower_isBetweenness (Θ : Finset T) (hΘ : Θ.Nonempty)
     (v : (T → ℝ) → ℝ) (hB : IsBetweenness Θ v) :
     IsBetweenness Θ (thinBLower Θ v) := by
-  sorry
+  -- Step 1: IsBetweenness Θ (-v) holds
+  have hB_neg : IsBetweenness Θ (-v) := by
+    intro μ hμ μ' hμ' l hl
+    have hB' := hB μ hμ μ' hμ' l hl
+    constructor
+    · -- Need: min ((-v) μ) ((-v) μ') ≤ (-v) (mixture)
+      -- Simplify (-v) μ to -(v μ)
+      simp only [Pi.neg_apply]
+      -- min (-a) (-b) = -max a b, so we need -max (v μ) (v μ') ≤ -v (mixture)
+      -- which is v (mixture) ≤ max (v μ) (v μ')
+      have hmin : min (-(v μ)) (-(v μ')) = -(max (v μ) (v μ')) := by
+        simp only [min_def, max_def]
+        split_ifs <;> linarith
+      rw [hmin]
+      simp only [neg_le_neg_iff]
+      exact hB'.2
+    · -- Need: (-v) (mixture) ≤ max ((-v) μ) ((-v) μ')
+      simp only [Pi.neg_apply]
+      -- max (-a) (-b) = -min a b, so we need -v (mixture) ≤ -min (v μ) (v μ')
+      have hmax : max (-(v μ)) (-(v μ')) = -(min (v μ) (v μ')) := by
+        simp only [min_def, max_def]
+        split_ifs <;> linarith
+      rw [hmax]
+      simp only [neg_le_neg_iff]
+      exact hB'.1
+  -- Step 2: Relate clusterValues of v and -v
+  have h_cluster_neg : ∀ μ, clusterValues Θ (-v) μ = (clusterValues Θ v μ).image (fun w => -w) := by
+    intro μ
+    ext w
+    simp only [clusterValues, Set.mem_image]
+    constructor
+    · rintro ⟨x, hx_mem, hx_tend, hx_vtend⟩
+      refine ⟨-w, ⟨x, hx_mem, hx_tend, ?_⟩, ?_⟩
+      · simp only [Pi.neg_apply] at hx_vtend ⊢
+        convert hx_vtend.neg using 2
+        simp
+      · ring
+    · rintro ⟨w', ⟨x, hx_mem, hx_tend, hx_vtend⟩, rfl⟩
+      refine ⟨x, hx_mem, hx_tend, ?_⟩
+      simp only [Pi.neg_apply]
+      exact hx_vtend.neg
+  -- Step 3: Prove the sInf/sSup relation
+  have h_sInf_eq : ∀ μ, sInf (clusterValues Θ v μ) = -sSup (clusterValues Θ (-v) μ) := by
+    intro μ
+    rw [h_cluster_neg μ]
+    simp only [Set.image_neg_eq_neg]
+    -- Need: sInf S = -sSup (-S)
+    -- This follows from: for all x in S, -x in -S, so sInf S ≤ x iff -x ≤ -sInf S, so -sInf S is upper bound of -S
+    -- and it's the least upper bound
+    apply le_antisymm
+    · -- sInf S ≤ -sSup (-S)
+      -- Equivalent to: sSup (-S) ≤ -sInf S
+      by_cases hS : (clusterValues Θ v μ).Nonempty
+      · have hbdd : BddBelow (clusterValues Θ v μ) := by
+          obtain ⟨a, b, hbdd⟩ := hB.bddOn_simplex Θ hΘ
+          use a
+          intro w hw
+          obtain ⟨x, hx_mem, _, hv_tend⟩ := hw
+          exact ge_of_tendsto hv_tend (Filter.Eventually.of_forall (fun n => (hbdd (x n) (hx_mem n)).1))
+        have h_neg_eq : -clusterValues Θ v μ = (fun w => -w) '' clusterValues Θ v μ := Set.image_neg_eq_neg.symm
+        have hkey : sSup (-clusterValues Θ v μ) = -sInf (clusterValues Θ v μ) := by
+          have h_eq : -clusterValues Θ v μ = (fun w => -w) '' clusterValues Θ v μ := Set.image_neg_eq_neg.symm
+          simp only [h_eq]
+          apply le_antisymm
+          · apply csSup_le
+            · exact hS.image _
+            · intro y hy
+              obtain ⟨s, hs, rfl⟩ := hy
+              exact neg_le_neg_iff.mpr (csInf_le hbdd hs)
+          · -- For any ε > 0, there exists s ∈ S with s < sInf S + ε, so -s > -sInf S - ε
+            -- Since -s ∈ -S, we have sSup(-S) ≥ -s > -sInf S - ε
+            -- Taking ε → 0 gives sSup(-S) ≥ -sInf S
+            have hbdd_above : BddAbove ((fun w => -w) '' clusterValues Θ v μ) := by
+              obtain ⟨a, b, hbdd⟩ := hB.bddOn_simplex Θ hΘ
+              use -a
+              intro y hy
+              obtain ⟨s, hs, rfl⟩ := hy
+              have hs_lb : a ≤ s := by
+                obtain ⟨x, hx_mem, _, hx_tend⟩ := hs
+                exact ge_of_tendsto hx_tend (Filter.Eventually.of_forall (fun n => (hbdd (x n) (hx_mem n)).1))
+              exact neg_le_neg_iff.mpr hs_lb
+            have h_forall : ∀ ε > 0, -sInf (clusterValues Θ v μ) - ε < sSup ((fun w => -w) '' clusterValues Θ v μ) := fun ε hε => by
+              have h_lt : sInf (clusterValues Θ v μ) < sInf (clusterValues Θ v μ) + ε / 2 := by linarith
+              rw [csInf_lt_iff hbdd hS] at h_lt
+              rcases h_lt with ⟨s, hs, hs_lt⟩
+              have hmem : -s ∈ (fun w => -w) '' clusterValues Θ v μ := ⟨s, hs, rfl⟩
+              have := le_csSup hbdd_above hmem
+              linarith
+            exact le_of_forall_pos_le_add (fun ε hε => by linarith [h_forall ε hε])
+        linarith
+      · simp [Set.not_nonempty_iff_eq_empty.mp hS]
+    · -- -sSup (-S) ≤ sInf S
+      have h_neg_eq : -clusterValues Θ v μ = (fun w => -w) '' clusterValues Θ v μ := Set.image_neg_eq_neg.symm
+      by_cases hS : (clusterValues Θ v μ).Nonempty
+      · have hbdd : BddBelow (clusterValues Θ v μ) := by
+          obtain ⟨a, b, hbdd⟩ := hB.bddOn_simplex Θ hΘ
+          use a
+          intro w hw
+          obtain ⟨x, hx_mem, _, hv_tend⟩ := hw
+          exact ge_of_tendsto hv_tend (Filter.Eventually.of_forall (fun n => (hbdd (x n) (hx_mem n)).1))
+        have h_eq : -clusterValues Θ v μ = (fun w => -w) '' clusterValues Θ v μ := Set.image_neg_eq_neg.symm
+        simp only [h_eq]
+        have hkey : sSup ((fun w => -w) '' clusterValues Θ v μ) = -sInf (clusterValues Θ v μ) := by
+          apply le_antisymm
+          · apply csSup_le
+            · exact hS.image _
+            · intro y hy
+              obtain ⟨s, hs, rfl⟩ := hy
+              exact neg_le_neg_iff.mpr (csInf_le hbdd hs)
+          · -- For any ε > 0, there exists s ∈ S with s < sInf S + ε, so -s > -sInf S - ε
+            -- Since -s ∈ -S, we have sSup(-S) ≥ -s > -sInf S - ε
+            -- Taking ε → 0 gives sSup(-S) ≥ -sInf S
+            have hbdd_above : BddAbove ((fun w => -w) '' clusterValues Θ v μ) := by
+              obtain ⟨a, b, hbdd⟩ := hB.bddOn_simplex Θ hΘ
+              use -a
+              intro y hy
+              obtain ⟨s, hs, rfl⟩ := hy
+              have hs_lb : a ≤ s := by
+                obtain ⟨x, hx_mem, _, hx_tend⟩ := hs
+                exact ge_of_tendsto hx_tend (Filter.Eventually.of_forall (fun n => (hbdd (x n) (hx_mem n)).1))
+              exact neg_le_neg_iff.mpr hs_lb
+            have h_forall : ∀ ε > 0, -sInf (clusterValues Θ v μ) - ε < sSup ((fun w => -w) '' clusterValues Θ v μ) := fun ε hε => by
+              have h_lt : sInf (clusterValues Θ v μ) < sInf (clusterValues Θ v μ) + ε / 2 := by linarith
+              rw [csInf_lt_iff hbdd hS] at h_lt
+              rcases h_lt with ⟨s, hs, hs_lt⟩
+              have hmem : -s ∈ (fun w => -w) '' clusterValues Θ v μ := ⟨s, hs, rfl⟩
+              have := le_csSup hbdd_above hmem
+              linarith
+            exact le_of_forall_pos_le_add (fun ε hε => by linarith [h_forall ε hε])
+        linarith
+      · simp [Set.not_nonempty_iff_eq_empty.mp hS]
+  -- Step 4: Use thinBUpper_isBetweenness for -v
+  have hB_upper_neg := thinBUpper_isBetweenness Θ hΘ (-v) hB_neg
+  -- Step 5: Derive IsBetweenness for thinBLower Θ v
+  intro μ hμ μ' hμ' l hl
+  have := hB_upper_neg μ hμ μ' hμ' l hl
+  simp only [thinBUpper] at this
+  simp only [thinBLower, h_sInf_eq]
+  constructor
+  · -- min (-sSup(clusterValues (-v) μ)) (-sSup(clusterValues (-v) μ')) ≤ -sSup(clusterValues (-v) mixture)
+    -- iff sSup(clusterValues (-v) mixture) ≤ max (sSup(clusterValues (-v) μ)) (sSup(clusterValues (-v) μ'))
+    have hmin : min (-(sSup (clusterValues Θ (-v) μ))) (-(sSup (clusterValues Θ (-v) μ'))) = 
+                -(max (sSup (clusterValues Θ (-v) μ)) (sSup (clusterValues Θ (-v) μ'))) := by 
+      simp [min_def, max_def]; split_ifs <;> linarith
+    rw [hmin, neg_le_neg_iff]
+    exact this.2
+  · -- -sSup(clusterValues (-v) mixture) ≤ max (-sSup(clusterValues (-v) μ)) (-sSup(clusterValues (-v) μ'))
+    -- iff min (sSup(clusterValues (-v) μ)) (sSup(clusterValues (-v) μ')) ≤ sSup(clusterValues (-v) mixture)
+    have hmax : max (-(sSup (clusterValues Θ (-v) μ))) (-(sSup (clusterValues Θ (-v) μ'))) = 
+                -(min (sSup (clusterValues Θ (-v) μ)) (sSup (clusterValues Θ (-v) μ'))) := by 
+      simp [min_def, max_def]; split_ifs <;> linarith
+    rw [hmax, neg_le_neg_iff]
+    exact this.1
 
 /-! ## Goal 3: exact values at mixtures with a common feasible payoff -/
 

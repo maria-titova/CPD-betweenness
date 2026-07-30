@@ -322,7 +322,160 @@ theorem thinB_merging (hthin : G.IsThinB)
     (hgt : K.w < K'.w) :
     G.preimageSet R (K.σ.evidence ∪ K'.σ.evidence) = K.C ∪ K'.C ∧
       G.vbar (G.condPrior (K.C ∪ K'.C)) = K.w := by
-  sorry
+  have hpre : G.preimageSet R (K.σ.evidence ∪ K'.σ.evidence) = K.C ∪ K'.C := by
+    have h_preimage_eq : G.preimageSet R K.σ.evidence = K.C ∧
+        G.preimageSet (R \ K.C) K'.σ.evidence = K'.C :=
+      ⟨K.preimage_eq, K'.preimage_eq⟩
+    simp_all +decide [Finset.subset_iff, DisclosureGame.preimageSet]
+    simp_all +decide [Finset.Nonempty, Set.Nonempty]
+    grind
+  refine ⟨hpre, le_antisymm ?_ ?_⟩
+  · have hu_mem : G.vbar (G.condPrior (K.C ∪ K'.C)) ∈
+        {w | ∃ X : Finset Msg, X ⊆ G.restrictMsgSpace R ∧ X.Nonempty ∧
+          w = G.vbar (G.condPrior (preimage G.M R X))} := by
+      let X : Finset Msg := Finset.univ.filter
+        (fun m => m ∈ K.σ.evidence ∪ K'.σ.evidence)
+      refine ⟨X, ?_, ?_, ?_⟩
+      · intro m hm
+        simp only [X, Finset.mem_filter, Finset.mem_univ, true_and] at hm
+        rcases hm with hm | hm
+        · have hmG : m ∈ (G.restrict R hne hsub).𝓜 := by
+            obtain ⟨θ, hθ⟩ := Set.mem_iUnion₂.mp hm
+            simp_all +decide [Strategy.msgSupport, mem_simplexSupport]
+            have hs := K.σ.mem θ hθ.1
+            exact (G.restrict R hne hsub).M_subset θ (K.C_subset hθ.1)
+              (by contrapose! hθ; aesop)
+          simpa using hmG
+        · have hmG : m ∈ (G.restrict (R \ K.C) hne'
+              (Finset.sdiff_subset.trans hsub)).𝓜 := by
+            obtain ⟨θ, hθ⟩ := Set.mem_iUnion₂.mp hm
+            simp_all +decide [Strategy.msgSupport, mem_simplexSupport]
+            have hs := K'.σ.mem θ hθ.1
+            exact (G.restrict (R \ K.C) hne'
+              (Finset.sdiff_subset.trans hsub)).M_subset θ (K'.C_subset hθ.1)
+              (by contrapose! hθ; aesop)
+          simp only [restrict_𝓜] at hmG ⊢
+          rcases Finset.mem_biUnion.mp hmG with ⟨θ, hθ, hmθ⟩
+          exact Finset.mem_biUnion.mpr ⟨θ, (Finset.mem_sdiff.mp hθ).1, hmθ⟩
+      · obtain ⟨θ, hθ⟩ := K.C_nonempty
+        have hs := K.σ.mem θ hθ
+        obtain ⟨m, hm⟩ : ∃ m, 0 < K.σ.σ θ m := by
+          by_contra hn
+          push_neg at hn
+          have hz : ∑ m, K.σ.σ θ m ≤ 0 := Finset.sum_nonpos fun m _ => hn m
+          linarith [hs.2.1]
+        have hmE : m ∈ K.σ.evidence := by
+          simp [Strategy.evidence]
+          exact ⟨θ, hθ, hm⟩
+        exact ⟨m, by simp [X, hmE]⟩
+      · congr 2
+        rw [← hpre]
+        ext θ
+        simp [preimage, DisclosureGame.preimageSet, X, Set.Nonempty, Finset.Nonempty]
+    have hu_le : G.vbar (G.condPrior (K.C ∪ K'.C)) ≤ G.vstar R :=
+      (vstar_isGreatest hne hsub).2 hu_mem
+    have hv_le : G.vstar R ≤ K.w :=
+      hmax.2 (thinB_attained hthin hne hsub).1
+    exact hu_le.trans hv_le
+  · have hcommonR : (G.restrict R hne hsub).HasCommonValueIntersections :=
+      (hthin.hasCommonValueIntersections).of_subgame hsub (by intro μ hμ; rfl)
+    have hsetK := thinB_coalition_payoff_set hcommonR K
+    have hcondK : (G.restrict R hne hsub).condPrior K.C = G.condPrior K.C := by
+      simpa using congrArg DisclosureGame.μ0
+        (restrict_restrict (G := G) hne hsub K.C_nonempty K.C_subset)
+    have hKmem : K.w ∈ G.V (G.condPrior K.C) := by
+      have hm : K.w ∈ K.repayablePayoffs := K.payoff
+      rw [hsetK, hcondK] at hm
+      exact hm
+    have hvKmem : G.vbar (G.condPrior K.C) ∈ K.repayablePayoffs := by
+      rw [hsetK, hcondK]
+      exact G.vbar_mem (simplexOn_mono (K.C_subset.trans hsub)
+        (condPrior_mem_simplex K.C_nonempty (K.C_subset.trans hsub)))
+    have hnewmem : G.vbar (G.condPrior K.C) ∈
+        (G.restrict R hne hsub).coalitionPayoffs := by
+      refine ⟨{ K with w := G.vbar (G.condPrior K.C), payoff := ?_ }, rfl⟩
+      exact hvKmem
+    have hvK_le : G.vbar (G.condPrior K.C) ≤ K.w := hmax.2 hnewmem
+    have hK_le : K.w ≤ G.vbar (G.condPrior K.C) := by
+      have := G.le_vbar (simplexOn_mono (K.C_subset.trans hsub)
+        (condPrior_mem_simplex K.C_nonempty (K.C_subset.trans hsub))) hKmem
+      exact this
+    have hvK : G.vbar (G.condPrior K.C) = K.w := le_antisymm hvK_le hK_le
+    have hK'disj : Disjoint K.C K'.C := Finset.disjoint_left.mpr fun x hx hx' =>
+      (Finset.mem_sdiff.mp (K'.C_subset hx')).2 hx
+    have hcommonR' : (G.restrict (R \ K.C) hne'
+        (Finset.sdiff_subset.trans hsub)).HasCommonValueIntersections :=
+      (hthin.hasCommonValueIntersections).of_subgame
+        (Finset.sdiff_subset.trans hsub) (by intro μ hμ; rfl)
+    have hsetK' := thinB_coalition_payoff_set hcommonR' K'
+    have hcondK' : (G.restrict (R \ K.C) hne'
+        (Finset.sdiff_subset.trans hsub)).condPrior K'.C = G.condPrior K'.C := by
+      simpa using congrArg DisclosureGame.μ0
+        (restrict_restrict (G := G) hne' (Finset.sdiff_subset.trans hsub)
+          K'.C_nonempty K'.C_subset)
+    have hK'mem : K'.w ∈ G.V (G.condPrior K'.C) := by
+      have hm : K'.w ∈ K'.repayablePayoffs := K'.payoff
+      rw [hsetK', hcondK'] at hm
+      exact hm
+    have hK'_le : K'.w ≤ G.vbar (G.condPrior K'.C) :=
+      G.le_vbar (simplexOn_mono
+        (K'.C_subset.trans (Finset.sdiff_subset.trans hsub))
+        (condPrior_mem_simplex K'.C_nonempty
+          (K'.C_subset.trans (Finset.sdiff_subset.trans hsub)))) hK'mem
+    obtain ⟨l, hl, hcond⟩ : ∃ l ∈ Set.Ioo (0 : ℝ) 1,
+        G.condPrior (K.C ∪ K'.C) = fun θ =>
+          l * G.condPrior K.C θ + (1-l) * G.condPrior K'.C θ := by
+      refine ⟨G.priorMeasure K.C /
+        (G.priorMeasure K.C + G.priorMeasure K'.C), ?_, ?_⟩
+      · exact ⟨div_pos (G.priorMeasure_pos K.C_nonempty (K.C_subset.trans hsub))
+          (add_pos (G.priorMeasure_pos K.C_nonempty (K.C_subset.trans hsub))
+            (G.priorMeasure_pos K'.C_nonempty
+              (K'.C_subset.trans (Finset.sdiff_subset.trans hsub)))), by
+          rw [div_lt_iff₀ (add_pos
+            (G.priorMeasure_pos K.C_nonempty (K.C_subset.trans hsub))
+            (G.priorMeasure_pos K'.C_nonempty
+              (K'.C_subset.trans (Finset.sdiff_subset.trans hsub))))]
+          linarith [G.priorMeasure_pos K.C_nonempty (K.C_subset.trans hsub),
+            G.priorMeasure_pos K'.C_nonempty
+              (K'.C_subset.trans (Finset.sdiff_subset.trans hsub))]⟩
+      · ext θ
+        by_cases hθC : θ ∈ K.C <;> by_cases hθD : θ ∈ K'.C <;>
+          simp +decide [*, div_eq_inv_mul]
+        · exact False.elim (Finset.disjoint_left.mp hK'disj hθC hθD)
+        · simp_all +decide [DisclosureGame.condPrior, DisclosureGame.priorMeasure]
+          rw [Finset.sum_union hK'disj]
+          ring
+          by_cases h : ∑ x ∈ K.C, G.μ0 x = 0 <;>
+            simp_all +decide [mul_assoc, mul_comm, mul_left_comm]
+          exact Or.inr (by
+            rw [Finset.sum_eq_zero_iff_of_nonneg fun _ _ => G.μ0_mem.1 _] at h
+            aesop)
+        · simp +decide [*, DisclosureGame.condPrior, DisclosureGame.priorMeasure]
+          rw [Finset.sum_union hK'disj]
+          field_simp
+          rw [one_sub_div, mul_div_assoc']
+          · rw [eq_div_iff] <;> ring
+            simp +decide [*, Finset.sum_eq_zero_iff_of_nonneg, G.μ0_mem,
+              G.μ0_fullSupport]
+            exact ne_of_gt (Finset.sum_pos
+              (fun x hx => G.μ0_fullSupport x
+                ((K'.C_subset.trans (Finset.sdiff_subset.trans hsub)) hx)) K'.C_nonempty)
+          · exact ne_of_gt (add_pos_of_nonneg_of_pos
+              (Finset.sum_nonneg fun _ _ => G.μ0_mem.1 _)
+              (Finset.sum_pos (fun x hx => G.μ0_fullSupport x
+                ((K'.C_subset.trans (Finset.sdiff_subset.trans hsub)) hx)) K'.C_nonempty))
+        · simp +decide [DisclosureGame.condPrior, hθC, hθD]
+    have hB := hthin.betweenness
+    rw [hcond]
+    have hb := hB (G.condPrior K.C)
+      (simplexOn_mono (K.C_subset.trans hsub)
+        (condPrior_mem_simplex K.C_nonempty (K.C_subset.trans hsub)))
+      (G.condPrior K'.C)
+      (simplexOn_mono (K'.C_subset.trans (Finset.sdiff_subset.trans hsub))
+        (condPrior_mem_simplex K'.C_nonempty
+          (K'.C_subset.trans (Finset.sdiff_subset.trans hsub)))) l hl
+    rw [hvK, min_eq_left (le_trans (le_of_lt hgt) hK'_le)] at hb
+    exact hb.1
 
 /-- **Thin-B existence.** Every thin-B disclosure game admits a
 coalition-proof PBE.  The upper envelope is upper semicontinuous and satisfies

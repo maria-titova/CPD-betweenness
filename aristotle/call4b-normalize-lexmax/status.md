@@ -7,7 +7,7 @@
 - Owns:        `ThinBExistence.lean` (shared this once with call5)
 - Project ID:  `24649bf5-0c82-49c8-8d7c-0dd0e85c4fe5`
 - Task ID:     `158695a5-6451-470d-81ca-c54a92545082`
-- Status:      **IN_PROGRESS** (submitted 2026-07-29)
+- Status:      **OUT_OF_BUDGET** (2026-07-30) — target still `sorry`, resume via `ask`
 - Retries:     0 (this is the retry of call4's one unproved target)
 - Merged:      no
 - Why a fresh submit, not `aristotle ask`: the route requires `LexMax.lean`, ported
@@ -28,3 +28,11 @@
                Targets are disjoint declarations, so expect a clean merge; the real risk
                is duplicate private helper NAMES, which surface as a build error rather
                than a conflict. Rename and rebuild if so.
+
+## Return (2026-07-30)
+- Ran OUT_OF_BUDGET. No target proved. Partial scaffolding in its workspace: proved
+  private helpers `common_vbar_of_convex_decomp`, `lexmax_first_payoff`,
+  `partition_cell_repayable`, `lexmax_succ_payoff`; the key step
+  `lexmax_forward_upperNormalized` and `exists_upperNormalizedPBE` itself still `sorry`.
+- NOT merged (would add a sorried helper; repo accounting stays clean). The workspace
+  retains all helpers, so `aristotle ask` resumes from there with fresh budget.
