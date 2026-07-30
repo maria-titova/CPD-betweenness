@@ -24,6 +24,8 @@ import CPDLinear.BetweennessRank
 import CPDLinear.BetweennessOrder
 import CPDLinear.BetweennessOrderUSC
 import CPDLinear.Theorem2
+import CPDLinear.LexMaxAux
+import CPDLinear.LexMax
 import CPDLinear.ThinB
 import CPDLinear.ThinBExistence
 import CPDLinear.BetweennessPending
