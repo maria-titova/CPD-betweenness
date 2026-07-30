@@ -161,13 +161,116 @@ def repayablePayoffs (K : Coalition G) : Set ℝ :=
 
 end Coalition
 
+private lemma thinB_bayes (s : Strategy G) :
+    (∀ θ, G.μ0 θ = ∑ m ∈ Finset.univ.filter (fun m => m ∈ s.evidence),
+      s.onPathProb m * s.belief m θ) ∧
+    (∑ m ∈ Finset.univ.filter (fun m => m ∈ s.evidence), s.onPathProb m = 1) := by
+  refine ⟨fun θ => ?_, ?_⟩
+  · by_cases hθ : θ ∈ G.Θ <;> simp_all +decide [Strategy.belief]
+    · rw [Finset.sum_congr rfl fun x hx => by
+        rw [mul_div_cancel₀ _ (ne_of_gt (s.onPathProb_pos_iff_mem_evidence x |>.2
+          (by simpa using hx)))]]
+      have hsum : ∑ m ∈ Finset.univ.filter (fun m => m ∈ s.evidence), s.σ θ m = 1 := by
+        have hall : ∑ m ∈ Finset.univ, s.σ θ m = 1 := (s.mem θ hθ).2.1
+        rw [← hall, ← Finset.sum_subset (Finset.subset_univ _)]
+        simp +contextual [Strategy.evidence, Strategy.msgSupport]
+        exact fun m hm => le_antisymm (hm θ hθ) ((s.mem θ hθ).1 m)
+      rw [← Finset.mul_sum, hsum, mul_one]
+    · have hz := G.μ0_mem.2.2 θ hθ
+      aesop
+  · unfold Strategy.onPathProb
+    rw [Finset.sum_comm]
+    have hsum : ∀ θ ∈ G.Θ,
+        ∑ m ∈ Finset.univ.filter (fun m => m ∈ s.evidence), s.σ θ m = 1 := by
+      intro θ hθ
+      have hall : ∑ m ∈ Finset.univ, s.σ θ m = 1 := (s.mem θ hθ).2.1
+      rw [← hall, ← Finset.sum_subset (Finset.subset_univ _)]
+      simp +contextual [Strategy.evidence, Strategy.msgSupport]
+      exact fun m hm => le_antisymm (hm θ hθ) ((s.mem θ hθ).1 m)
+    convert G.priorMeasure_self using 1
+    exact Finset.sum_congr rfl fun θ hθ => by rw [← Finset.mul_sum, hsum θ hθ, mul_one]
+
+private lemma thinB_condPrior_decomp (K : Coalition G) :
+    G.condPrior K.C = fun θ =>
+      ∑ m ∈ Finset.univ.filter (fun m => m ∈ K.σ.evidence),
+        K.σ.onPathProb m * K.σ.coalitionBelief m θ := by
+  funext θ
+  convert (thinB_bayes K.σ).1 θ using 1
+  refine Finset.sum_congr rfl fun m hm => ?_
+  simp +decide [Strategy.coalitionBelief, Strategy.belief] at hm ⊢
+  by_cases hθ : θ ∈ K.C <;> simp +decide [hθ, zeroExt]
+  · convert Or.inl rfl using 1
+  · rw [DisclosureGame.condPrior_of_not_mem] <;> simp +decide [hθ]
+
+private lemma thinB_coalitionBelief_mem (K : Coalition G)
+    {m : Msg} (hm : m ∈ K.σ.evidence) :
+    K.σ.coalitionBelief m ∈ simplexOn G.Θ := by
+  convert zeroExt_mem_simplex K.C_subset _
+  exact K.σ.belief_mem_simplex hm
+
 /-- **Exact coalition payoff set.**  Once a coalition strategy has one common
 payoff, the set of all payoffs compatible with that same strategy is exactly
 the correspondence value at the coalition prior. -/
 theorem thinB_coalition_payoff_set
     (hcommon : G.HasCommonValueIntersections) (K : Coalition G) :
     K.repayablePayoffs = G.V (G.condPrior K.C) := by
-  sorry
+  -- The condPrior is a convex combination of coalition beliefs
+  rw [thinB_condPrior_decomp K]
+  -- Define the finset of evidence messages
+  let ev : Finset Msg := Finset.univ.filter (fun m => m ∈ K.σ.evidence)
+  -- The sum over the filtered finset can be reindexed to Fin n
+  let n := ev.card
+  -- Create an equivalence between Fin n and the evidence finset
+  let eqv : Fin n ≃ ev := (Finset.equivFin ev).symm
+  -- Define the weight function and belief function indexed by Fin n
+  let a : Fin n → ℝ := fun i => K.σ.onPathProb (eqv i).val
+  let μs : Fin n → (T → ℝ) := fun i => K.σ.coalitionBelief (eqv i).val
+  -- Reindex the sum
+  have hsum_eq : ∀ θ, ∑ m with m ∈ K.σ.evidence, K.σ.onPathProb m * K.σ.coalitionBelief m θ =
+      ∑ i : Fin n, a i * μs i θ := by
+    intro θ
+    simp only [a, μs]
+    let eqv' : Fin n ≃ ev := Finset.equivFin ev |>.symm
+    rw [show (Finset.univ.filter (fun m => m ∈ K.σ.evidence) : Finset Msg) = ev from rfl]
+    let g : ↥ev → ℝ := fun m => K.σ.onPathProb m.val * K.σ.coalitionBelief m.val θ
+    rw [eqv.sum_comp g]
+    rw [← Finset.sum_coe_sort]
+  simp_all +decide
+  -- Now apply HasCommonValueIntersections
+  have hev : ev = Finset.univ.filter (fun m => m ∈ K.σ.evidence) := rfl
+  have mem_ev_to_mem_evidence : ∀ m : Msg, m ∈ ev → m ∈ K.σ.evidence := by
+    intro m hm
+    simp [hev] at hm
+    exact hm
+  rw [hcommon n a μs K.w
+      (fun i => (K.σ.onPathProb_pos_iff_mem_evidence _).mpr (mem_ev_to_mem_evidence _ (eqv i).property))
+      (by
+        have h := thinB_bayes K.σ |>.2
+        -- h : ∑ m ∈ Finset.univ.filter (fun m => m ∈ K.σ.evidence), K.σ.onPathProb m = 1
+        simp only [a]
+        convert h using 1
+        symm
+        rw [eqv.sum_comp (fun m : ↥ev => K.σ.onPathProb m.val)]
+        rw [← Finset.sum_coe_sort])
+      (fun i => thinB_coalitionBelief_mem K (mem_ev_to_mem_evidence _ (eqv i).property))
+      (fun i => K.payoff (eqv i).val (mem_ev_to_mem_evidence _ (eqv i).property))]
+  -- Now prove the set equality
+  have heq : K.repayablePayoffs = {w | ∀ m ∈ K.σ.evidence, w ∈ G.V (K.σ.coalitionBelief m)} := rfl
+  rw [heq]
+  apply Set.ext
+  intro x
+  constructor
+  · intro hx i
+    exact hx (eqv i).val (mem_ev_to_mem_evidence _ (eqv i).property)
+  · intro hx m hm
+    have hm' : m ∈ ev := by simp [hev]; exact hm
+    let i := eqv.symm (Subtype.mk m hm')
+    have heqv : eqv i = Subtype.mk m hm' := eqv.apply_symm_apply (Subtype.mk m hm')
+    have hval : (eqv i).val = m := by rw [heqv]
+    have := hx i
+    simp only [μs] at this
+    rw [hval] at this
+    exact this
 
 namespace Partition
 
@@ -196,7 +299,8 @@ theorem thinB_upperNormalizedPBE_subgame
     (hV : ∀ μ ∈ simplexOn H.Θ, H.V μ = G.V μ) :
     ∃ P : Partition H,
       P.IsPBEPartition ∧ StrictAnti P.w ∧ P.IsUpperNormalized := by
-  sorry
+  apply exists_upperNormalizedPBE
+  exact (hthin.hasCommonValueIntersections).of_subgame hΘ hV
 
 /-- **Thin-B attainment.**  The largest coalition payoff on a residual face is
 the largest upper-envelope pooling value over relative message preimages. -/
