@@ -514,7 +514,7 @@ Recall that showing existence of coalition-proof PBE amounts to showing that som
 
 Either strict betweenness or genericity rules this configuration out: under B$^*$ by the last part of \cref{lem:btw-merging}, and under genericity because $C\cup C'$ would be a type set distinct from $C$ but with the same value $w$, which \cref{dfn:generic} forbids. In either case, removing a payoff-maximal coalition never raises the residual maximum, so the greedy recursion never stalls.
 
-\begin{theorem}\label{thm:two}\ \leanmixed{Theorem2.lean::two\_noHalt\_full,\ bstar\_cppbe\_iff\_coe,\ two\_unique}{BetweennessPending.lean::two\_generic\_noHalt\_full,\ generic\_cppbe\_iff\_coe,\ two\_B\_generic\_unique}
+\begin{theorem}\label{thm:two}\ \leanproved{Theorem2.lean::two\_noHalt\_full,\ bstar\_cppbe\_iff\_coe,\ two\_unique;\ BetweennessPending.lean::two\_generic\_noHalt\_full,\ generic\_cppbe\_iff\_coe,\ two\_B\_generic\_unique}
     Assume B, and suppose that B$^*$ holds or that $G$ is generic. Then:
     \begin{enumerate}
         \item[(i)] No run of \cref{alg:greedy-partition} halts, and every run produces a coalition-proof PBE partition, so a coalition-proof PBE exists.

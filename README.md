@@ -13,8 +13,15 @@ This repository isolates the single-valued and thin-B betweenness results from
   `BetweennessOrderUSC.lean` contains the pending upper-semicontinuous
   level-set ranking theorem;
   `ThinBExistence.lean` contains the game-level thin-B targets; and
-  `BetweennessPending.lean` records the remaining genericity branch of the
-  stronger single-valued theorem.
+  `BetweennessPending.lean` holds the genericity branch of the stronger
+  single-valued theorem, now proved.
+
+The Lean package is no longer restricted to the betweenness import closure.
+The remaining modules of the full `CPD` development were ported in (namespace
+`CPD` rewritten to `CPDLinear`), because the eventual deliverable is the whole
+paper and the dropped modules turned out to carry machinery the thin-B work
+needs — `LexMax`/`LexMaxAux` for lexicographically maximal PBE partitions, and
+`BetweennessGeneric`, which discharges the genericity branch outright.
 
 The former `tex/extension/` staging directory has been retired. Do not recreate
 a second thin-B source: edit `tex/v5.tex`.
